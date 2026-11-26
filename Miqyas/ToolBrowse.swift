@@ -92,7 +92,7 @@ nonisolated enum ToolFavorites {
     }
 }
 
-/// Camera-measure line appearance. Yellow and medium are the defaults.
+/// Camera-measure line appearance. Accent blue and medium are the defaults.
 nonisolated enum MeasureLineColor: String, CaseIterable, Codable, Equatable, Sendable {
     case yellow
     case white
@@ -106,7 +106,7 @@ nonisolated enum MeasureLineThickness: String, CaseIterable, Codable, Equatable,
     case medium
     case thick
 
-    /// Core tube width, in meters. The dark outline is drawn wider than this.
+    /// Core tube width, in meters. A thin white edge is drawn just outside this.
     var widthMeters: Float {
         switch self {
         case .thin: return 0.008
@@ -128,12 +128,12 @@ nonisolated struct MeasureLineOptions: Equatable, Codable, Sendable {
     var color: MeasureLineColor
     var thickness: MeasureLineThickness
 
-    static let `default` = MeasureLineOptions(color: .yellow, thickness: .medium)
+    static let `default` = MeasureLineOptions(color: .blue, thickness: .medium)
     static let colorDefaultsKey = "ar_measure_line_color"
     static let thicknessDefaultsKey = "ar_measure_line_thickness"
 
     static func load(from defaults: UserDefaults) -> MeasureLineOptions {
-        let color = defaults.string(forKey: colorDefaultsKey).flatMap(MeasureLineColor.init(rawValue:)) ?? .yellow
+        let color = defaults.string(forKey: colorDefaultsKey).flatMap(MeasureLineColor.init(rawValue:)) ?? .blue
         let thickness = defaults.string(forKey: thicknessDefaultsKey).flatMap(MeasureLineThickness.init(rawValue:)) ?? .medium
         return MeasureLineOptions(color: color, thickness: thickness)
     }

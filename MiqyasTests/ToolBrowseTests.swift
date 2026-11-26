@@ -149,7 +149,7 @@ final class ToolBrowseTests: XCTestCase {
         defaults.removePersistentDomain(forName: suite)
 
         XCTAssertEqual(MeasureLineOptions.load(from: defaults), .default)
-        XCTAssertEqual(MeasureLineOptions.default.color, .yellow)
+        XCTAssertEqual(MeasureLineOptions.default.color, .blue)
         XCTAssertEqual(MeasureLineOptions.default.thickness, .medium)
 
         defaults.set("nope", forKey: MeasureLineOptions.colorDefaultsKey)
@@ -162,7 +162,7 @@ final class ToolBrowseTests: XCTestCase {
 
         MeasureLineOptions.reset(in: defaults)
         XCTAssertEqual(MeasureLineOptions.load(from: defaults), .default)
-        XCTAssertEqual(defaults.string(forKey: MeasureLineOptions.colorDefaultsKey), MeasureLineColor.yellow.rawValue)
+        XCTAssertEqual(defaults.string(forKey: MeasureLineOptions.colorDefaultsKey), MeasureLineColor.blue.rawValue)
         XCTAssertEqual(defaults.string(forKey: MeasureLineOptions.thicknessDefaultsKey), MeasureLineThickness.medium.rawValue)
         defaults.removePersistentDomain(forName: suite)
     }

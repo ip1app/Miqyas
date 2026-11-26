@@ -93,6 +93,9 @@ struct ARMeasureToolView: View {
     @State private var points: [WorldPoint] = []
     @State private var missedSurface = false
     @State private var showingLineOptions = false
+    @State private var labelPoint: CGPoint?
+    @State private var hintVisible = true
+    @State private var hintTask: Task<Void, Never>?
 
     private var locale: Locale { Locale(identifier: settings.appLanguage.rawValue) }
 
@@ -148,8 +151,17 @@ struct ARMeasureToolView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         }
-        .onAppear { model.start() }
-        .onDisappear { model.stop() }
+        .onAppear {
+            model.start()
+            showHintBriefly()
+        }
+        .onDisappear {
+            model.stop()
+            hintTask?.cancel()
+        }
+        .onChange(of: hint) { _, _ in
+            showHintBriefly()
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 model.start()
@@ -167,77 +179,125 @@ struct ARMeasureToolView: View {
                 running: model.sessionRunning,
                 markers: points,
                 corners: rectangle?.corners ?? [],
-                label: measurementLabel,
+                hasLabel: !measurementLabel.isEmpty,
                 lineOptions: settings.measureLineOptions,
                 onPoint: addPoint,
-                onMiss: { missedSurface = true }
+                onMiss: { missedSurface = true },
+                onLabelPoint: { labelPoint = $0 }
             )
-            .ignoresSafeArea(edges: .bottom)
+            .ignoresSafeArea()
+            .overlay {
+                if let labelPoint, !measurementLabel.isEmpty {
+                    Text(measurementLabel)
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundStyle(.primary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(.ultraThinMaterial, in: Capsule())
+                        .overlay(Capsule().stroke(Color.white.opacity(0.6), lineWidth: 1))
+                        .shadow(color: Color.black.opacity(0.12), radius: 8, y: 3)
+                        .position(labelPoint)
+                        .allowsHitTesting(false)
+                        .environment(\.layoutDirection, .leftToRight)
+                }
+            }
 
-            panel
+            controls
                 .padding(.horizontal, 16)
-                .padding(.bottom, 110)
+                .padding(.bottom, 108)
         }
     }
 
-    private var panel: some View {
-        VStack(spacing: 12) {
+    private var controls: some View {
+        VStack(spacing: 8) {
+            if hintVisible {
+                Text(hint)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.45), lineWidth: 1))
+                    .transition(.opacity)
+            }
+
             Picker(settings.l10n.toolARTitle, selection: $mode) {
                 Text(settings.l10n.arDistanceMode).tag(ARMeasureMode.distance)
                 Text(settings.l10n.arAreaMode).tag(ARMeasureMode.area)
             }
             .pickerStyle(.segmented)
+            .controlSize(.small)
+            .frame(maxWidth: 210)
             .onChange(of: mode) { _, _ in
                 points = []
                 missedSurface = false
+                labelPoint = nil
             }
 
-            Picker(settings.l10n.unitMeter, selection: $unit) {
-                Text(settings.l10n.unitCentimeter).tag(MeasureDisplayUnit.centimeters)
-                Text(settings.l10n.unitMeter).tag(MeasureDisplayUnit.meters)
-                Text(settings.l10n.unitInch).tag(MeasureDisplayUnit.inches)
-                Text(settings.l10n.unitFoot).tag(MeasureDisplayUnit.feet)
+            HStack(spacing: 10) {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Text(readoutValue)
+                        .font(.system(size: 28, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.primary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .environment(\.layoutDirection, .leftToRight)
+                    unitMenu
+                }
+                Spacer(minLength: 8)
+                Button {
+                    settings.triggerFeedback()
+                    points = []
+                    missedSurface = false
+                    labelPoint = nil
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundStyle(.blue)
+                        .frame(width: 36, height: 36)
+                        .background(.ultraThinMaterial, in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(settings.l10n.arClear)
             }
-            .pickerStyle(.segmented)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .toolGlass(cornerRadius: 22)
+        }
+    }
 
-            if mode == .distance {
-                measurementLabelPlate(
-                    value: distanceText,
-                    unit: lengthUnit,
-                    caption: settings.l10n.arDistanceMode
-                )
-            } else {
-                measurementLabelPlate(
-                    value: areaText,
-                    unit: areaUnit,
-                    caption: settings.l10n.arArea
-                )
-                if let rectangle {
-                    HStack(spacing: 10) {
-                        ToolStatPill(title: settings.l10n.arWidth, value: lengthText(rectangle.widthMeters))
-                        ToolStatPill(title: settings.l10n.arHeight, value: lengthText(rectangle.heightMeters))
-                    }
+    private var unitMenu: some View {
+        Menu {
+            ForEach(MeasureDisplayUnit.allCases, id: \.rawValue) { choice in
+                Button(unitTitle(choice)) {
+                    unit = choice
                 }
             }
+        } label: {
+            HStack(spacing: 3) {
+                Text(readoutUnit)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+            }
+            .font(.system(size: 16, weight: .bold, design: .rounded))
+            .foregroundStyle(.blue)
+        }
+        .accessibilityLabel(readoutUnit)
+    }
 
-            Text(hint)
-                .font(.footnote)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity)
-
-            ToolActionButton(
-                title: settings.l10n.arClear,
-                systemImage: "arrow.counterclockwise",
-                prominent: false
-            ) {
-                settings.triggerFeedback()
-                points = []
-                missedSurface = false
+    private func showHintBriefly() {
+        hintTask?.cancel()
+        withAnimation(.easeOut(duration: 0.2)) {
+            hintVisible = true
+        }
+        hintTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 2_400_000_000)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.45)) {
+                hintVisible = false
             }
         }
-        .padding(16)
-        .toolGlass(cornerRadius: 24)
     }
 
     private var hint: String {
@@ -256,27 +316,36 @@ struct ARMeasureToolView: View {
         }
     }
 
-    private var measurementLabel: String {
-        if mode == .distance {
-            guard distanceText != "—" else { return "" }
-            return distanceText + " " + lengthUnit
-        }
-        guard areaText != "—" else { return "" }
-        return areaText + " " + areaUnit
+    private var readoutValue: String {
+        mode == .distance ? distanceText : areaText
     }
 
-    private func measurementLabelPlate(value: String, unit: String, caption: String) -> some View {
-        ToolValueReadout(value: value, unit: unit, caption: caption, tint: .yellow)
-            .padding(.vertical, 6)
-            .padding(.horizontal, 8)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(Color.black.opacity(0.82))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(Color.white.opacity(0.35), lineWidth: 1)
-            )
+    private var readoutUnit: String {
+        mode == .distance ? lengthUnit : areaUnit
+    }
+
+    private var measurementLabel: String {
+        guard readoutValue != "—" else { return "" }
+        return readoutValue + " " + readoutUnit
+    }
+
+    private func unitTitle(_ choice: MeasureDisplayUnit) -> String {
+        switch mode {
+        case .distance:
+            switch choice {
+            case .centimeters: return settings.l10n.unitCentimeter
+            case .meters: return settings.l10n.unitMeter
+            case .inches: return settings.l10n.unitInch
+            case .feet: return settings.l10n.unitFoot
+            }
+        case .area:
+            switch choice {
+            case .centimeters: return settings.l10n.unitSquareCentimeter
+            case .meters: return settings.l10n.unitSquareMeter
+            case .inches: return settings.l10n.unitSquareInch
+            case .feet: return settings.l10n.unitSquareFoot
+            }
+        }
     }
 
     private var distanceText: String {
@@ -357,7 +426,6 @@ struct ARMeasureToolView: View {
 private struct MeasureSnapshot: Equatable {
     var markers: [WorldPoint]
     var corners: [WorldPoint]
-    var label: String
     var lineOptions: MeasureLineOptions
 }
 
@@ -365,10 +433,11 @@ private struct MeasureCamera: UIViewRepresentable {
     var running: Bool
     var markers: [WorldPoint]
     var corners: [WorldPoint]
-    var label: String
+    var hasLabel: Bool
     var lineOptions: MeasureLineOptions
     var onPoint: (WorldPoint) -> Void
     var onMiss: () -> Void
+    var onLabelPoint: (CGPoint?) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator()
@@ -392,8 +461,10 @@ private struct MeasureCamera: UIViewRepresentable {
     func updateUIView(_ uiView: ARView, context: Context) {
         context.coordinator.onPoint = onPoint
         context.coordinator.onMiss = onMiss
+        context.coordinator.onLabelScreenPoint = onLabelPoint
+        context.coordinator.reportsLabel = hasLabel
         context.coordinator.render(
-            MeasureSnapshot(markers: markers, corners: corners, label: label, lineOptions: lineOptions)
+            MeasureSnapshot(markers: markers, corners: corners, lineOptions: lineOptions)
         )
         if running {
             context.coordinator.start()
@@ -403,18 +474,23 @@ private struct MeasureCamera: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ uiView: ARView, coordinator: Coordinator) {
-        coordinator.pause()
+        coordinator.teardown()
     }
 
     @MainActor
     final class Coordinator {
         var onPoint: ((WorldPoint) -> Void)?
         var onMiss: (() -> Void)?
+        var onLabelScreenPoint: ((CGPoint?) -> Void)?
+        var reportsLabel = false
         private var view: ARView?
         private var proxy: MeasureTapProxy?
         private var running = false
         private var rendered: MeasureSnapshot?
         private var anchors: [AnchorEntity] = []
+        private var labelWorld: SIMD3<Float>?
+        private var lastPublished: CGPoint?
+        private var updateSubscription: (any Cancellable)?
 
         func attach(view: ARView, proxy: MeasureTapProxy) {
             self.view = view
@@ -426,6 +502,17 @@ private struct MeasureCamera: UIViewRepresentable {
             proxy.onMiss = { [weak self] in
                 self?.onMiss?()
             }
+            updateSubscription = view.scene.subscribe(to: SceneEvents.Update.self) { [weak self] _ in
+                Task { @MainActor in
+                    self?.publishLabelPoint()
+                }
+            }
+        }
+
+        func teardown() {
+            pause()
+            updateSubscription?.cancel()
+            updateSubscription = nil
         }
 
         func start() {
@@ -453,8 +540,9 @@ private struct MeasureCamera: UIViewRepresentable {
             let color = snapshot.lineOptions.color.uiColor
             let width = snapshot.lineOptions.thickness.widthMeters
             let radius = snapshot.lineOptions.thickness.endpointRadiusMeters
+            let camera = view.cameraTransform.translation
             for point in drawn {
-                anchors.append(makeSphere(at: point, radius: radius, color: color))
+                anchors.append(makeEndpoint(at: point, radius: radius, camera: camera))
             }
             if drawn.count >= 2 {
                 for index in 0..<(drawn.count - 1) {
@@ -464,32 +552,55 @@ private struct MeasureCamera: UIViewRepresentable {
                     anchors.append(contentsOf: makeLine(from: drawn[3], to: drawn[0], width: width, color: color))
                 }
             }
-            if !snapshot.label.isEmpty, let center = average(of: drawn) {
-                let camera = view.cameraTransform.translation
-                if let labelAnchor = makeLabel(snapshot.label, at: center, facing: camera, color: color) {
-                    anchors.append(labelAnchor)
-                }
+            if reportsLabel, drawn.count >= 2, let center = average(of: drawn) {
+                labelWorld = center.vector
+            } else {
+                labelWorld = nil
+                lastPublished = nil
             }
             for anchor in anchors {
                 view.scene.addAnchor(anchor)
             }
+            publishLabelPoint()
         }
 
-        private func makeSphere(at point: WorldPoint, radius: Float, color: UIColor) -> AnchorEntity {
-            let sphere = ModelEntity(
-                mesh: .generateSphere(radius: radius),
-                materials: [unlit(color)]
-            )
+        func publishLabelPoint() {
+            guard let view else { return }
+            let point = labelWorld.flatMap { view.project($0) }
+            if let point, let lastPublished,
+               abs(point.x - lastPublished.x) < 1.5,
+               abs(point.y - lastPublished.y) < 1.5 {
+                return
+            }
+            lastPublished = point
+            onLabelScreenPoint?(point)
+        }
+
+        /// White fill with an accent-blue ring, turned toward the camera.
+        private func makeEndpoint(at point: WorldPoint, radius: Float, camera: SIMD3<Float>) -> AnchorEntity {
             let anchor = AnchorEntity(world: point.vector)
-            anchor.addChild(sphere)
+            let towardCamera = camera - point.vector
+            if simd_length(towardCamera) > 0.05 {
+                anchor.orientation = simd_quatf(from: SIMD3<Float>(0, 1, 0), to: simd_normalize(towardCamera))
+            }
+            let ring = ModelEntity(
+                mesh: .generateCylinder(height: 0.0014, radius: radius * 1.42),
+                materials: [unlit(.systemBlue)]
+            )
+            let fill = ModelEntity(
+                mesh: .generateCylinder(height: 0.0014, radius: radius),
+                materials: [unlit(.white)]
+            )
+            fill.position.y = 0.0016
+            anchor.addChild(ring)
+            anchor.addChild(fill)
             return anchor
         }
 
-        /// A dark tube slightly wider than the colored core, so the line stays readable on any surface.
+        /// A thin white edge around the colored core so the line stays visible without a heavy outline.
         private func makeLine(from start: WorldPoint, to end: WorldPoint, width: Float, color: UIColor) -> [AnchorEntity] {
-            let outline = width * 1.85
-            return [
-                tube(from: start, to: end, width: outline, color: UIColor.black.withAlphaComponent(0.92)),
+            [
+                tube(from: start, to: end, width: width * 1.35, color: .white),
                 tube(from: start, to: end, width: width, color: color)
             ].compactMap { $0 }
         }
@@ -505,45 +616,6 @@ private struct MeasureCamera: UIViewRepresentable {
             box.orientation = simd_quatf(from: SIMD3<Float>(0, 0, 1), to: simd_normalize(delta))
             let anchor = AnchorEntity(world: (start.vector + end.vector) / 2)
             anchor.addChild(box)
-            return anchor
-        }
-
-        private func makeLabel(_ text: String, at point: WorldPoint, facing camera: SIMD3<Float>, color: UIColor) -> AnchorEntity? {
-            let font = UIFont.systemFont(ofSize: 0.06, weight: .heavy)
-            guard let mesh = try? MeshResource.generateText(
-                text,
-                extrusionDepth: 0.002,
-                font: font,
-                containerFrame: .zero,
-                alignment: .center,
-                lineBreakMode: .byClipping
-            ) else { return nil }
-
-            let bounds = mesh.bounds
-            let textEntity = ModelEntity(mesh: mesh, materials: [unlit(color)])
-            textEntity.position = SIMD3(
-                -(bounds.center.x),
-                -(bounds.center.y),
-                0.006
-            )
-
-            let pad: Float = 0.016
-            let plate = ModelEntity(
-                mesh: .generateBox(
-                    width: max(bounds.extents.x + pad * 2, 0.08),
-                    height: max(bounds.extents.y + pad * 2, 0.045),
-                    depth: 0.004,
-                    cornerRadius: 0.01
-                ),
-                materials: [unlit(UIColor.black.withAlphaComponent(0.88))]
-            )
-            let anchor = AnchorEntity(world: point.vector)
-            let toCamera = camera - point.vector
-            if simd_length(toCamera) > 0.05 {
-                anchor.orientation = simd_quatf(from: SIMD3<Float>(0, 0, 1), to: simd_normalize(toCamera))
-            }
-            anchor.addChild(plate)
-            anchor.addChild(textEntity)
             return anchor
         }
 
@@ -642,7 +714,7 @@ private extension MeasureLineColor {
         case .white: return .white
         case .red: return UIColor(red: 1, green: 0.16, blue: 0.16, alpha: 1)
         case .green: return UIColor(red: 0.15, green: 0.95, blue: 0.3, alpha: 1)
-        case .blue: return UIColor(red: 0.2, green: 0.55, blue: 1, alpha: 1)
+        case .blue: return .systemBlue
         }
     }
 

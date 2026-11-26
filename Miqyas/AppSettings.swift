@@ -47,7 +47,7 @@ final class AppSettings: ObservableObject {
         }
     }
 
-    /// Camera-measure line color and thickness. Yellow and medium until the user changes them.
+    /// Camera-measure line color and thickness. Accent blue and medium until the user changes them.
     @Published var measureLineOptions: MeasureLineOptions = .default {
         didSet {
             MeasureLineOptions.save(measureLineOptions, to: .standard)
