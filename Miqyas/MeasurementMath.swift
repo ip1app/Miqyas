@@ -581,8 +581,8 @@ nonisolated struct UnitQuaternion: Equatable, Sendable {
 
     /// Angle required to turn `self` onto `other`, in degrees, from 0 to 180.
     func angleDegrees(to other: UnitQuaternion) -> Double? {
-        guard let inverse else { return nil }
-        return other.multiplied(by: inverse).rotationDegrees
+        guard let inverted = inverse() else { return nil }
+        return other.multiplied(by: inverted).rotationDegrees
     }
 }
 

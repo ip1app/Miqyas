@@ -41,13 +41,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يستخدم مقياس موقعك أثناء فتح التطبيق لإظهار اتجاه القبلة والمسافة إلى مكة المكرمة."
+            "value" : "يستخدم مقياس موقعك أثناء فتح التطبيق لإظهار اتجاه القبلة والمسافة إلى مكة المكرمة، ولقياس سرعتك."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Miqyas uses your location while the app is open to show the Qibla direction and the distance to Makkah."
+            "value" : "Miqyas uses your location while the app is open to show the Qibla direction and the distance to Makkah, and to measure your speed."
           }
         }
       }
