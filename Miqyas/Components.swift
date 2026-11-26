@@ -288,6 +288,222 @@ struct NeonAmbientBackground: View {
     }
 }
 
+// MARK: - Shared catalog header, search and filters
+
+/// Shared catalog header view used by the Home (units) and Tools pages.
+/// Keeps a consistent fixed height and layout so controls below sit at the exact same y position.
+struct CatalogHeaderView: View {
+    let badge: String
+    let title: String
+    var subtitle: String? = nil
+    let icon: String
+
+    var body: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.caption.bold())
+                        .foregroundColor(.yellow)
+                    Text(badge)
+                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.blue, Color.cyan],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                )
+
+                Text(title)
+                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: accentGradientColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.blue.opacity(0.12), radius: 6, y: 3)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+
+                Group {
+                    if let subtitle = subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        Text(" ")
+                            .font(.system(size: 14, weight: .medium))
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Glowing 3D Glass Badge
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.35))
+                    .frame(width: 56, height: 56)
+                    .blur(radius: 10)
+
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.blue, Color.cyan],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 52, height: 52)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.6), lineWidth: 1.5)
+                    )
+
+                Image(systemName: icon)
+                    .font(.title2.bold())
+                    .foregroundColor(.white)
+            }
+            .frame(width: 56, height: 56)
+        }
+        .padding(.top, 8)
+        .frame(height: 94)
+    }
+}
+
+/// The home search field. The tools page uses the same field with its own placeholder.
+struct CatalogSearchField: View {
+    @Binding var text: String
+    let placeholder: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.blue)
+
+            TextField(placeholder, text: $text)
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .autocorrectionDisabled()
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.ultraThinMaterial)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.5), Color.blue.opacity(0.2)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .shadow(color: Color.black.opacity(0.04), radius: 10, y: 4)
+    }
+}
+
+/// All / Popular / Favorites chips, with the layout-edit button when the caller allows editing.
+struct CatalogFilterChips: View {
+    let options: [String]
+    @Binding var selectedIndex: Int
+    var showsEditButton: Bool
+    var editLabel: String
+    var onSelect: () -> Void
+    var onEdit: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(options.indices, id: \.self) { index in
+                let label = options[index]
+                let isSelected = selectedIndex == index
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedIndex = index
+                    }
+                    onSelect()
+                } label: {
+                    Text(label)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(isSelected ? .white : .primary)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 9)
+                        .background(
+                            ZStack {
+                                if isSelected {
+                                    LinearGradient(
+                                        colors: [Color.blue, Color.cyan],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                } else {
+                                    Color.clear
+                                }
+                            }
+                        )
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(
+                                    isSelected ? Color.cyan.opacity(0.4) : Color.white.opacity(0.3),
+                                    lineWidth: 1
+                                )
+                        )
+                        .shadow(color: isSelected ? Color.blue.opacity(0.35) : Color.black.opacity(0.03), radius: 6, y: 3)
+                }
+            }
+            Spacer()
+
+            if showsEditButton {
+                Button(action: onEdit) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.blue)
+                        .frame(width: 34, height: 34)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
+                }
+                .accessibilityLabel(editLabel)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+    }
+}
+
 // MARK: - Category Card Content (shared visuals)
 
 struct CategoryCardContent: View {

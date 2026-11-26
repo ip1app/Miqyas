@@ -41,13 +41,13 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "يستخدم مقياس موقعك أثناء فتح التطبيق لإظهار اتجاه القبلة والمسافة إلى مكة المكرمة."
+            "value" : "يستخدم مقياس موقعك أثناء فتح التطبيق لإظهار اتجاه القبلة والمسافة إلى مكة المكرمة، ولقياس سرعتك."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Miqyas uses your location while the app is open to show the Qibla direction and the distance to Makkah."
+            "value" : "Miqyas uses your location while the app is open to show the Qibla direction and the distance to Makkah, and to measure your speed."
           }
         }
       }
@@ -65,6 +65,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Miqyas uses the microphone to show an approximate sound level while the sound meter is open."
+          }
+        }
+      }
+    },
+    "NSCameraUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم مقياس الكاميرا لتقدير الإضاءة وقياس المسافة بالواقع المعزّز أثناء فتح هذه الأدوات."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miqyas uses the camera to estimate brightness and to measure distance in augmented reality while those tools are open."
+          }
+        }
+      }
+    },
+    "NSMotionUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم مقياس مستشعرات الحركة لقياس الميل والضغط والخطوات والمجال المغناطيسي والاهتزاز أثناء فتح هذه الأدوات."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miqyas uses motion sensors to measure tilt, pressure, steps, magnetic field, and vibration while those tools are open."
           }
         }
       }

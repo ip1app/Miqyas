@@ -276,6 +276,8 @@ struct SettingsView: View {
                     settings.hiddenCategoryIds.removeAll()
                     settings.toolOrder = MeasuringTool.allCases.map(\.rawValue)
                     settings.hiddenMeasuringToolIds.removeAll()
+                    settings.measuringToolFavoriteIDs.removeAll()
+                    settings.measureLineOptions = .default
                     settings.maxDecimalDigits = 4
                     settings.useScientificNotation = true
                     settings.useThousandsSeparator = true

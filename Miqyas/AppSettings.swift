@@ -40,6 +40,20 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// Favorite measuring tools. Separate from unit-category favorites.
+    @Published var measuringToolFavoriteIDs: [String] = [] {
+        didSet {
+            UserDefaults.standard.set(measuringToolFavoriteIDs, forKey: ToolFavorites.defaultsKey)
+        }
+    }
+
+    /// Camera-measure line color and thickness. Accent blue and medium until the user changes them.
+    @Published var measureLineOptions: MeasureLineOptions = .default {
+        didSet {
+            MeasureLineOptions.save(measureLineOptions, to: .standard)
+        }
+    }
+
     @Published var hiddenCategoryIds: [String] = [] {
         didSet {
             UserDefaults.standard.set(hiddenCategoryIds, forKey: "home_hidden_categories")
@@ -83,6 +97,10 @@ final class AppSettings: ObservableObject {
     /// In-memory review counter. The successful-conversion total and the last
     /// prompted version are persisted; the on-screen signature is not.
     private var reviewTracker = ReviewPromptTracker()
+
+    /// Hardware that is missing on this device. These ids stay in the saved order
+    /// and are not written into the hidden-tools list.
+    private let unavailableMeasuringToolIDs: Set<String>
 
     var l10n: L10n {
         L10n(lang: appLanguage)
@@ -192,20 +210,32 @@ final class AppSettings: ObservableObject {
         ToolOrder.merged(saved: toolOrder, catalog: measuringToolCatalog).compactMap(MeasuringTool.init(rawValue:))
     }
 
-    /// Tools shown on the grid.
+    /// Tools shown on the grid. User-hidden and hardware-unavailable tools are omitted.
     var orderedMeasuringTools: [MeasuringTool] {
-        let hidden = Set(ToolOrder.mergedHidden(saved: hiddenMeasuringToolIds, catalog: measuringToolCatalog))
-        return allMeasuringToolsInOrder.filter { !hidden.contains($0.id) }
+        tools(withIDs: ToolOrder.displayedIDs(measuringToolLayout, unavailable: unavailableMeasuringToolIDs))
     }
 
-    /// Tools hidden from the grid, in the saved order.
+    /// Tools the user hid that this device can still show, in the saved order.
     var hiddenMeasuringTools: [MeasuringTool] {
-        let hidden = Set(ToolOrder.mergedHidden(saved: hiddenMeasuringToolIds, catalog: measuringToolCatalog))
+        let hidden = Set(measuringToolLayout.hidden.filter { !unavailableMeasuringToolIDs.contains($0) })
         return allMeasuringToolsInOrder.filter { hidden.contains($0.id) }
     }
 
     var canHideMoreMeasuringTools: Bool {
         orderedMeasuringTools.count > 1
+    }
+
+    private var measuringToolLayout: ToolOrder.Layout {
+        ToolOrder.layout(
+            savedOrder: toolOrder,
+            savedHidden: hiddenMeasuringToolIds,
+            catalog: measuringToolCatalog
+        )
+    }
+
+    private func tools(withIDs ids: [String]) -> [MeasuringTool] {
+        let byID = Dictionary(uniqueKeysWithValues: MeasuringTool.allCases.map { ($0.rawValue, $0) })
+        return ids.compactMap { byID[$0] }
     }
 
     func moveMeasuringTool(_ draggedId: String, to targetId: String) {
@@ -230,14 +260,13 @@ final class AppSettings: ObservableObject {
     }
 
     func toggleMeasuringToolHidden(_ id: String) {
-        if hiddenMeasuringToolIds.contains(id) {
-            hiddenMeasuringToolIds.removeAll { $0 == id }
-            triggerFeedback()
-        } else {
-            guard canHideMoreMeasuringTools else { return }
-            hiddenMeasuringToolIds.append(id)
-            triggerFeedback()
-        }
+        guard let updated = ToolOrder.togglingHidden(
+            measuringToolLayout,
+            id: id,
+            unavailable: unavailableMeasuringToolIDs
+        ) else { return }
+        hiddenMeasuringToolIds = updated.hidden
+        triggerFeedback()
     }
 
     func showAllMeasuringTools() {
@@ -249,6 +278,25 @@ final class AppSettings: ObservableObject {
     func resetMeasuringToolOrder() {
         toolOrder = MeasuringTool.allCases.map(\.rawValue)
         hiddenMeasuringToolIds.removeAll()
+        measuringToolFavoriteIDs.removeAll()
+        triggerFeedback()
+    }
+
+    /// Favorite tools this device can open, in the saved order. Hidden cards stay listed.
+    var favoriteMeasuringTools: [MeasuringTool] {
+        tools(withIDs: ToolFavorites.listed(
+            ordered: allMeasuringToolsInOrder.map(\.id),
+            favorites: measuringToolFavoriteIDs,
+            unavailable: unavailableMeasuringToolIDs
+        ))
+    }
+
+    func isMeasuringToolFavorite(_ id: String) -> Bool {
+        measuringToolFavoriteIDs.contains(id)
+    }
+
+    func toggleMeasuringToolFavorite(_ id: String) {
+        measuringToolFavoriteIDs = ToolFavorites.toggling(measuringToolFavoriteIDs, id: id)
         triggerFeedback()
     }
 
@@ -278,6 +326,9 @@ final class AppSettings: ObservableObject {
     }
 
     private init() {
+        unavailableMeasuringToolIDs = Set(MeasuringTool.allCases.map(\.rawValue))
+            .subtracting(MeasuringToolHardware.availableIDs())
+
         if let savedLang = UserDefaults.standard.string(forKey: "app_language"),
            let lang = AppLanguage(rawValue: savedLang) {
             appLanguage = lang
@@ -303,6 +354,13 @@ final class AppSettings: ObservableObject {
         if let savedHiddenTools = UserDefaults.standard.stringArray(forKey: ToolOrder.hiddenDefaultsKey) {
             hiddenMeasuringToolIds = savedHiddenTools
         }
+        if let savedToolFavorites = UserDefaults.standard.stringArray(forKey: ToolFavorites.defaultsKey) {
+            measuringToolFavoriteIDs = ToolFavorites.sanitized(
+                savedToolFavorites,
+                catalog: MeasuringTool.allCases.map(\.rawValue)
+            )
+        }
+        measureLineOptions = MeasureLineOptions.load(from: .standard)
 
         history = loadHistory()
 

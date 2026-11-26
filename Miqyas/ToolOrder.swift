@@ -81,14 +81,22 @@ nonisolated enum ToolOrder {
         )
     }
 
-    /// Hides a visible card, or shows it again. Refuses to hide the last visible card.
-    static func togglingHidden(_ layout: Layout, id: String) -> Layout? {
+    /// Visible cards the device can actually show. Unavailable ids stay in `order`
+    /// and are not added to `hidden`; they also do not count as a remaining card.
+    static func displayedIDs(_ layout: Layout, unavailable: Set<String> = []) -> [String] {
+        layout.visible.filter { !unavailable.contains($0) }
+    }
+
+    /// Hides a visible card, or shows it again. Refuses to hide the last card that
+    /// is actually visible. `unavailable` ids are not that last card.
+    static func togglingHidden(_ layout: Layout, id: String, unavailable: Set<String> = []) -> Layout? {
         if let index = layout.hidden.firstIndex(of: id) {
             var shown = layout
             shown.hidden.remove(at: index)
             return shown
         }
-        guard layout.order.contains(id), layout.visible.count > 1 else { return nil }
+        let availableVisible = displayedIDs(layout, unavailable: unavailable)
+        guard availableVisible.contains(id), availableVisible.count > 1 else { return nil }
         var hidden = layout
         hidden.hidden.append(id)
         return hidden

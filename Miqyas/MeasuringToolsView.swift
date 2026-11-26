@@ -4,9 +4,18 @@ import UniformTypeIdentifiers
 // MARK: - Tools hub
 
 enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
-    case level
     case compass
+    case ar
+    case light
+    case speedometer
+    case level
+    case ruler
+    case protractor
     case sound
+    case pedometer
+    case barometer
+    case magnetometer
+    case seismometer
 
     var id: String { rawValue }
 
@@ -15,6 +24,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return l10n.toolLevelTitle
         case .compass: return l10n.toolCompassTitle
         case .sound: return l10n.toolSoundTitle
+        case .ruler: return l10n.toolRulerTitle
+        case .protractor: return l10n.toolProtractorTitle
+        case .barometer: return l10n.toolBarometerTitle
+        case .pedometer: return l10n.toolPedometerTitle
+        case .speedometer: return l10n.toolSpeedTitle
+        case .light: return l10n.toolLightTitle
+        case .magnetometer: return l10n.toolMagnetTitle
+        case .seismometer: return l10n.toolSeismoTitle
+        case .ar: return l10n.toolARTitle
         }
     }
 
@@ -23,6 +41,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return l10n.toolLevelSubtitle
         case .compass: return l10n.toolCompassSubtitle
         case .sound: return l10n.toolSoundSubtitle
+        case .ruler: return l10n.toolRulerSubtitle
+        case .protractor: return l10n.toolProtractorSubtitle
+        case .barometer: return l10n.toolBarometerSubtitle
+        case .pedometer: return l10n.toolPedometerSubtitle
+        case .speedometer: return l10n.toolSpeedSubtitle
+        case .light: return l10n.toolLightSubtitle
+        case .magnetometer: return l10n.toolMagnetSubtitle
+        case .seismometer: return l10n.toolSeismoSubtitle
+        case .ar: return l10n.toolARSubtitle
         }
     }
 
@@ -31,6 +58,25 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return l10n.toolLevelBadge
         case .compass: return l10n.toolCompassBadge
         case .sound: return l10n.toolSoundBadge
+        case .ruler: return l10n.toolRulerBadge
+        case .protractor: return l10n.toolProtractorBadge
+        case .barometer: return l10n.toolBarometerBadge
+        case .pedometer: return l10n.toolPedometerBadge
+        case .speedometer: return l10n.toolSpeedBadge
+        case .light: return l10n.toolLightBadge
+        case .magnetometer: return l10n.toolMagnetBadge
+        case .seismometer: return l10n.toolSeismoBadge
+        case .ar: return l10n.toolARBadge
+        }
+    }
+
+    /// Extra search words that are not the current title. The camera tool keeps its old names.
+    func searchKeywords() -> [String] {
+        switch self {
+        case .ar:
+            return ["AR", "الواقع المعزز", "measure", "قياس معزّز", "AR Measure"]
+        default:
+            return []
         }
     }
 
@@ -39,6 +85,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return "circle.grid.cross.fill"
         case .compass: return "location.north.line.fill"
         case .sound: return "waveform"
+        case .ruler: return "ruler.fill"
+        case .protractor: return "angle"
+        case .barometer: return "barometer"
+        case .pedometer: return "figure.walk"
+        case .speedometer: return "speedometer"
+        case .light: return "sun.max.fill"
+        case .magnetometer: return "magnet"
+        case .seismometer: return "waveform.path.ecg"
+        case .ar: return "viewfinder"
         }
     }
 
@@ -47,6 +102,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return [Color.blue, Color.cyan]
         case .compass: return [Color.teal, Color.green]
         case .sound: return [Color.orange, Color.pink]
+        case .ruler: return [Color.indigo, Color.blue]
+        case .protractor: return [Color.purple, Color.indigo]
+        case .barometer: return [Color.teal, Color.blue]
+        case .pedometer: return [Color.green, Color.mint]
+        case .speedometer: return [Color.red, Color.orange]
+        case .light: return [Color.yellow, Color.orange]
+        case .magnetometer: return [Color.pink, Color.purple]
+        case .seismometer: return [Color.mint, Color.cyan]
+        case .ar: return [Color.blue, Color.purple]
         }
     }
 }
@@ -55,11 +119,54 @@ struct MeasuringToolsView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var router: TabNavigationRouter
     @State private var path = NavigationPath()
+    @State private var searchText = ""
+    @State private var selectedFilterIndex = 0
     @State private var isEditingLayout = false
     @State private var draggingToolID: String?
     @State private var lastDropTargetId: String?
     @State private var showingResetOrder = false
     @State private var showCannotHideAlert = false
+
+    private var filterOptions: [String] {
+        [settings.l10n.filterAll, settings.l10n.filterPopular, settings.l10n.filterFavorites]
+    }
+
+    /// Reorder and hide stay on All, with the search field empty, the same as home.
+    private var canEditLayout: Bool {
+        selectedFilterIndex == ToolBrowse.Filter.all.rawValue
+            && searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var favoriteTools: [MeasuringTool] {
+        settings.orderedMeasuringTools.filter { settings.isMeasuringToolFavorite($0.id) }
+    }
+
+    private var displayedTools: [MeasuringTool] {
+        if isEditingLayout {
+            return settings.orderedMeasuringTools
+        }
+        let names = Dictionary(uniqueKeysWithValues: MeasuringTool.allCases.map { tool in
+            (
+                tool.rawValue,
+                ToolBrowse.Name(
+                    arabicTitle: tool.title(using: L10n(lang: .arabic)),
+                    englishTitle: tool.title(using: L10n(lang: .english)),
+                    arabicSubtitle: tool.subtitle(using: L10n(lang: .arabic)),
+                    englishSubtitle: tool.subtitle(using: L10n(lang: .english)),
+                    keywords: tool.searchKeywords()
+                )
+            )
+        })
+        let ids = ToolBrowse.matchingIDs(
+            orderedVisible: settings.orderedMeasuringTools.map(\.id),
+            filter: ToolBrowse.Filter(rawValue: selectedFilterIndex) ?? .all,
+            favorites: settings.measuringToolFavoriteIDs,
+            query: searchText,
+            names: names
+        )
+        let byID = Dictionary(uniqueKeysWithValues: MeasuringTool.allCases.map { ($0.rawValue, $0) })
+        return ids.compactMap { byID[$0] }
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -71,7 +178,19 @@ struct MeasuringToolsView: View {
                     if isEditingLayout {
                         editModeBanner
                     } else {
-                        editButtonRow
+                        CatalogSearchField(text: $searchText, placeholder: settings.l10n.toolsSearchPlaceholder)
+                        CatalogFilterChips(
+                            options: filterOptions,
+                            selectedIndex: $selectedFilterIndex,
+                            showsEditButton: canEditLayout,
+                            editLabel: settings.l10n.editCards,
+                            onSelect: { settings.triggerFeedback() },
+                            onEdit: { enterEditMode() }
+                        )
+                    }
+
+                    if !isEditingLayout && selectedFilterIndex == 0 && searchText.isEmpty && !favoriteTools.isEmpty {
+                        favoritesQuickRow
                     }
 
                     if isEditingLayout && !settings.hiddenMeasuringTools.isEmpty {
@@ -94,12 +213,19 @@ struct MeasuringToolsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: MeasuringTool.self) { tool in
-                toolDestination(tool)
+                measuringToolScreen(tool)
+                    .toolFavoriteStar(tool.id)
             }
             .alert(settings.l10n.cannotHideAll, isPresented: $showCannotHideAlert) {
                 Button(settings.l10n.done, role: .cancel) { }
             } message: {
                 Text(settings.l10n.cannotHideAllMsg)
+            }
+            .onChange(of: selectedFilterIndex) { _, _ in
+                exitEditModeIfNeeded()
+            }
+            .onChange(of: searchText) { _, _ in
+                exitEditModeIfNeeded()
             }
         }
         .onChange(of: router.toolsPopToken) { _, _ in
@@ -111,87 +237,58 @@ struct MeasuringToolsView: View {
     }
 
     private var header: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.caption.bold())
-                        .foregroundColor(.yellow)
-                    Text(settings.l10n.smartConverter)
-                        .font(.system(size: 13, weight: .heavy, design: .rounded))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.blue, Color.cyan],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(Color.blue.opacity(0.3), lineWidth: 1))
-
-                Text(settings.l10n.toolsHeadline)
-                    .font(.system(size: 28, weight: .heavy, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: accentGradientColors,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .shadow(color: Color.blue.opacity(0.12), radius: 6, y: 3)
-
-                Text(settings.l10n.toolsSubtitle)
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .lineLimit(2)
-            }
-
-            Spacer()
-
-            ZStack {
-                Circle()
-                    .fill(Color.blue.opacity(0.35))
-                    .frame(width: 56, height: 56)
-                    .blur(radius: 10)
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.blue, Color.cyan],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 52, height: 52)
-                    .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 1.5))
-                Image(systemName: "wrench.and.screwdriver.fill")
-                    .font(.title2.bold())
-                    .foregroundColor(.white)
-            }
-        }
-        .padding(.top, 8)
+        CatalogHeaderView(
+            badge: settings.l10n.smartConverter,
+            title: settings.l10n.toolsHeadline,
+            subtitle: settings.l10n.toolsSubtitle,
+            icon: "wrench.and.screwdriver.fill"
+        )
     }
 
-    private var editButtonRow: some View {
-        HStack {
-            Spacer()
-            Button {
-                enterEditMode()
-            } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.blue)
-                    .frame(width: 34, height: 34)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
-                    .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
+    private var favoritesQuickRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "star.fill")
+                    .foregroundColor(.yellow)
+                Text(settings.l10n.quickFavorites)
+                    .font(.headline)
+                Spacer()
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(settings.l10n.editCards)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(favoriteTools) { tool in
+                        Button {
+                            open(tool)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: tool.icon)
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
+                                    .frame(width: 32, height: 32)
+                                    .background(
+                                        LinearGradient(
+                                            colors: tool.gradient,
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .clipShape(Circle())
+
+                                Text(tool.title(using: settings.l10n))
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.primary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(14)
+                            .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
         }
     }
 
@@ -243,6 +340,16 @@ struct MeasuringToolsView: View {
     }
 
     private var toolGrid: some View {
+        Group {
+            if displayedTools.isEmpty {
+                toolsEmptyState
+            } else {
+                toolsGrid
+            }
+        }
+    }
+
+    private var toolsGrid: some View {
         LazyVGrid(
             columns: [
                 GridItem(.flexible(), spacing: 14),
@@ -250,7 +357,7 @@ struct MeasuringToolsView: View {
             ],
             spacing: 14
         ) {
-            ForEach(settings.orderedMeasuringTools) { tool in
+            ForEach(displayedTools) { tool in
                 if isEditingLayout {
                     ToolGridCard(
                         tool: tool,
@@ -301,6 +408,41 @@ struct MeasuringToolsView: View {
                 }
             }
         }
+    }
+
+    private var toolsEmptyState: some View {
+        let searching = !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let showingFavorites = selectedFilterIndex == ToolBrowse.Filter.favorites.rawValue && !searching
+        return VStack(spacing: 16) {
+            Image(systemName: showingFavorites ? "star.slash.fill" : "magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary.opacity(0.5))
+                .padding(.top, 40)
+
+            if showingFavorites {
+                Text(settings.l10n.toolsEmptyFavoritesTitle)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Text(settings.l10n.toolsEmptyFavoritesMsg)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            } else {
+                Text(settings.l10n.toolsNoSearchResults)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Button(settings.l10n.clearSearch) {
+                    searchText = ""
+                    selectedFilterIndex = ToolBrowse.Filter.all.rawValue
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
     }
 
     private var resetOrderButton: some View {
@@ -410,10 +552,16 @@ struct MeasuringToolsView: View {
     }
 
     private func enterEditMode() {
-        guard !isEditingLayout else { return }
+        guard canEditLayout, !isEditingLayout else { return }
         settings.triggerFeedback(impact: .medium)
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             isEditingLayout = true
+        }
+    }
+
+    private func exitEditModeIfNeeded() {
+        if isEditingLayout && !canEditLayout {
+            exitEditMode()
         }
     }
 
@@ -427,16 +575,35 @@ struct MeasuringToolsView: View {
         }
     }
 
-    @ViewBuilder
-    private func toolDestination(_ tool: MeasuringTool) -> some View {
-        switch tool {
-        case .level:
-            LevelToolView()
-        case .compass:
-            CompassQiblaToolView()
-        case .sound:
-            SoundMeterToolView()
-        }
+}
+
+@ViewBuilder
+func measuringToolScreen(_ tool: MeasuringTool) -> some View {
+    switch tool {
+    case .level:
+        LevelToolView()
+    case .compass:
+        CompassQiblaToolView()
+    case .sound:
+        SoundMeterToolView()
+    case .ruler:
+        ScreenRulerToolView()
+    case .protractor:
+        ProtractorToolView()
+    case .barometer:
+        BarometerToolView()
+    case .pedometer:
+        PedometerToolView()
+    case .speedometer:
+        SpeedometerToolView()
+    case .light:
+        LightMeterToolView()
+    case .magnetometer:
+        MagnetometerToolView()
+    case .seismometer:
+        SeismometerToolView()
+    case .ar:
+        ARMeasureToolView()
     }
 }
 
@@ -494,7 +661,8 @@ private struct ToolGridCard: View {
                 icon: tool.icon,
                 gradient: tool.gradient,
                 badge: tool.badge(using: settings.l10n),
-                arrowSystemName: settings.appLanguage.arrowIcon
+                arrowSystemName: settings.appLanguage.arrowIcon,
+                showsFavoriteStar: settings.isMeasuringToolFavorite(tool.id)
             )
         }
         .buttonStyle(ScaleCardButtonStyle())
@@ -693,6 +861,63 @@ struct ToolHintText: View {
     }
 }
 
+struct ToolValueReadout: View {
+    let value: String
+    let unit: String
+    var caption: String?
+    var tint: Color = .primary
+
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(value)
+                    .font(.system(size: 56, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundColor(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Text(unit)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .environment(\.layoutDirection, .leftToRight)
+            if let caption {
+                Text(caption)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct ToolStatPill: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(value)
+                .font(.system(.title3, design: .rounded).weight(.bold).monospacedDigit())
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .environment(\.layoutDirection, .leftToRight)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 6)
+        .toolGlass(cornerRadius: 16)
+    }
+}
+
 enum MeasurementFormat {
     static func fixed(_ value: Double, fractionDigits: Int, locale: Locale) -> String {
         let formatter = NumberFormatter()
@@ -736,6 +961,37 @@ func currentInterfaceOrientation() -> UIInterfaceOrientation {
 func openAppSettings() {
     guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
     UIApplication.shared.open(url)
+}
+
+struct ToolFavoriteStar: ViewModifier {
+    let toolID: String
+    @EnvironmentObject private var settings: AppSettings
+
+    func body(content: Content) -> some View {
+        content.toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                        settings.toggleMeasuringToolFavorite(toolID)
+                    }
+                } label: {
+                    Image(systemName: settings.isMeasuringToolFavorite(toolID) ? "star.fill" : "star")
+                        .font(.title3)
+                        .foregroundColor(settings.isMeasuringToolFavorite(toolID) ? .yellow : .primary)
+                        .scaleEffect(settings.isMeasuringToolFavorite(toolID) ? 1.15 : 1.0)
+                }
+                .accessibilityLabel(
+                    settings.isMeasuringToolFavorite(toolID) ? settings.l10n.unfavoriteTool : settings.l10n.favoriteTool
+                )
+            }
+        }
+    }
+}
+
+extension View {
+    func toolFavoriteStar(_ toolID: String) -> some View {
+        modifier(ToolFavoriteStar(toolID: toolID))
+    }
 }
 
 #Preview {
