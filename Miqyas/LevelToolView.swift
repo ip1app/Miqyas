@@ -51,20 +51,21 @@ final class LevelToolModel: ObservableObject {
         isAvailable = true
         guard !isRunning else { return }
 
+        let model = self
         if motion.isDeviceMotionAvailable, let frame = preferredReferenceFrame() {
             isRunning = true
             motion.deviceMotionUpdateInterval = 1.0 / 20.0
-            motion.startDeviceMotionUpdates(using: frame, to: .main) { [weak self] data, _ in
+            motion.startDeviceMotionUpdates(using: frame, to: .main) { data, _ in
                 guard let data else { return }
                 let gravity = GravityVector(x: data.gravity.x, y: data.gravity.y, z: data.gravity.z)
                 Task { @MainActor in
-                    self?.consume(gravity)
+                    model.consume(gravity)
                 }
             }
         } else if motion.isAccelerometerAvailable {
             isRunning = true
             motion.accelerometerUpdateInterval = 1.0 / 20.0
-            motion.startAccelerometerUpdates(to: .main) { [weak self] data, _ in
+            motion.startAccelerometerUpdates(to: .main) { data, _ in
                 guard let data else { return }
                 let gravity = GravityVector(
                     x: data.acceleration.x,
@@ -72,7 +73,7 @@ final class LevelToolModel: ObservableObject {
                     z: data.acceleration.z
                 )
                 Task { @MainActor in
-                    self?.consume(gravity)
+                    model.consume(gravity)
                 }
             }
         } else {

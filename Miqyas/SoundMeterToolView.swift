@@ -4,7 +4,7 @@ import Combine
 
 // MARK: - Sound meter
 
-private enum SoundAccess: Equatable {
+fileprivate enum SoundAccess: Equatable {
     case idle
     case denied
     case unavailable
@@ -12,12 +12,12 @@ private enum SoundAccess: Equatable {
     case measuring
 }
 
-private enum SoundMeterError: Error {
+fileprivate enum SoundMeterError: Error {
     case unavailable
 }
 
 /// Lock-protected samples. The audio tap writes here; the main actor reads.
-nonisolated final class SoundAccumulator: @unchecked Sendable {
+nonisolated fileprivate final class SoundAccumulator: @unchecked Sendable {
     private let lock = NSLock()
     private var aggregate: SoundAggregate?
     private var latest: Double?
@@ -50,8 +50,8 @@ nonisolated final class SoundAccumulator: @unchecked Sendable {
     }
 }
 
-@MainActor
-final class SoundMeterEngine {
+/// Not main-actor isolated. The input tap runs on the audio thread and must not capture this object.
+nonisolated fileprivate final class SoundMeterEngine {
     let accumulator = SoundAccumulator()
     private let engine = AVAudioEngine()
     private var tapInstalled = false
@@ -77,10 +77,7 @@ final class SoundMeterEngine {
         }
 
         let sink = accumulator
-        input.installTap(onBus: 0, bufferSize: 2048, format: format) { buffer, _ in
-            guard let decibels = meterDecibels(from: buffer) else { return }
-            sink.add(SoundLevelMath.approximateDecibels(dbfs: decibels))
-        }
+        installSoundMeterTap(on: input, format: format, sink: sink)
         tapInstalled = true
         engine.prepare()
         do {
@@ -109,7 +106,19 @@ final class SoundMeterEngine {
     }
 }
 
-nonisolated func meterDecibels(from buffer: AVAudioPCMBuffer) -> Double? {
+/// Installed from a nonisolated function so the `@Sendable` tap captures only the sample sink.
+nonisolated fileprivate func installSoundMeterTap(
+    on input: AVAudioInputNode,
+    format: AVAudioFormat,
+    sink: SoundAccumulator
+) {
+    input.installTap(onBus: 0, bufferSize: 2048, format: format) { buffer, _ in
+        guard let decibels = meterDecibels(from: buffer) else { return }
+        sink.add(SoundLevelMath.approximateDecibels(dbfs: decibels))
+    }
+}
+
+nonisolated fileprivate func meterDecibels(from buffer: AVAudioPCMBuffer) -> Double? {
     let count = Int(buffer.frameLength)
     guard count > 0 else { return nil }
     if let channels = buffer.floatChannelData {
@@ -124,10 +133,11 @@ nonisolated func meterDecibels(from buffer: AVAudioPCMBuffer) -> Double? {
 }
 
 @MainActor
-final class SoundMeterModel: ObservableObject {
-    @Published private(set) var access: SoundAccess = .idle
-    @Published private(set) var current: Double?
-    @Published private(set) var aggregate: SoundAggregate?
+fileprivate final class SoundMeterModel: ObservableObject {
+    /// `SoundAccess` is fileprivate, so this property cannot be internal.
+    @Published fileprivate var access: SoundAccess = .idle
+    @Published fileprivate var current: Double?
+    @Published fileprivate var aggregate: SoundAggregate?
 
     private let engine = SoundMeterEngine()
     private var pullTask: Task<Void, Never>?
@@ -186,18 +196,22 @@ final class SoundMeterModel: ObservableObject {
     private func requestPermission() {
         guard !permissionRequestInFlight else { return }
         permissionRequestInFlight = true
-        AVAudioApplication.requestRecordPermission { [weak self] granted in
+        let model = self
+        AVAudioApplication.requestRecordPermission { granted in
             Task { @MainActor in
-                guard let self else { return }
-                self.permissionRequestInFlight = false
-                guard self.wantsRunning else { return }
-                if granted {
-                    self.beginEngine()
-                } else {
-                    self.tearDownEngine()
-                    self.access = .denied
-                }
+                model.finishPermissionRequest(granted)
             }
+        }
+    }
+
+    private func finishPermissionRequest(_ granted: Bool) {
+        permissionRequestInFlight = false
+        guard wantsRunning else { return }
+        if granted {
+            beginEngine()
+        } else {
+            tearDownEngine()
+            access = .denied
         }
     }
 
@@ -404,27 +418,29 @@ private struct SoundGauge: View {
     }
 
     var body: some View {
-        Canvas { context, size in
+        let levelFraction = fraction
+        let levelTint = tint
+        return Canvas { context, size in
             let radius = min(size.width / 2 - 16, size.height - 24)
             guard radius > 8 else { return }
             let center = CGPoint(x: size.width / 2, y: radius + 14)
-            let track = gaugePath(center: center, radius: radius, from: 0, to: 1)
+            let track = SoundGauge.arc(center: center, radius: radius, from: 0, to: 1)
             context.stroke(
                 track,
                 with: .color(Color.primary.opacity(0.1)),
                 style: StrokeStyle(lineWidth: 16, lineCap: .round, lineJoin: .round)
             )
-            if fraction > 0.002 {
-                let level = gaugePath(center: center, radius: radius, from: 0, to: fraction)
+            if levelFraction > 0.002 {
+                let level = SoundGauge.arc(center: center, radius: radius, from: 0, to: levelFraction)
                 context.stroke(
                     level,
-                    with: .color(tint),
+                    with: .color(levelTint),
                     style: StrokeStyle(lineWidth: 16, lineCap: .round, lineJoin: .round)
                 )
             }
 
             // 0 fraction points left, 1 points right, 0.5 points up.
-            let theta = Double.pi * (1 - fraction)
+            let theta = Double.pi * (1 - levelFraction)
             let needleLength = radius - 26
             let tip = CGPoint(
                 x: center.x + CGFloat(cos(theta)) * needleLength,
@@ -433,7 +449,7 @@ private struct SoundGauge: View {
             var needle = Path()
             needle.move(to: center)
             needle.addLine(to: tip)
-            context.stroke(needle, with: .color(tint), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+            context.stroke(needle, with: .color(levelTint), style: StrokeStyle(lineWidth: 4, lineCap: .round))
             let hub = Path(ellipseIn: CGRect(x: center.x - 6, y: center.y - 6, width: 12, height: 12))
             context.fill(hub, with: .color(Color.primary))
         }
@@ -442,7 +458,7 @@ private struct SoundGauge: View {
     }
 
     /// Upper semicircle. Fraction 0 is left (π) and 1 is right (0), passing through the top.
-    private func gaugePath(center: CGPoint, radius: CGFloat, from startFraction: Double, to endFraction: Double) -> Path {
+    private static func arc(center: CGPoint, radius: CGFloat, from startFraction: Double, to endFraction: Double) -> Path {
         var path = Path()
         let steps = 48
         let start = Double.pi * (1 - startFraction)

@@ -104,6 +104,18 @@ final class CompassQiblaModel: NSObject, ObservableObject, CLLocationManagerDele
         self.longitude = longitude
     }
 
+    private func applyHeading(trueHeading: Double, magneticHeading: Double, accuracy: Double) {
+        guard wantsRunning else { return }
+        headingAccuracy = accuracy
+        if let resolved = CompassMath.resolvedHeading(
+            trueHeading: trueHeading,
+            magneticHeading: magneticHeading,
+            accuracy: accuracy
+        ) {
+            heading = resolved
+        }
+    }
+
     nonisolated private static func mapAuth(_ status: CLAuthorizationStatus) -> CompassAccess {
         switch status {
         case .authorizedAlways, .authorizedWhenInUse:
@@ -139,15 +151,7 @@ final class CompassQiblaModel: NSObject, ObservableObject, CLLocationManagerDele
         let magneticHeading = newHeading.magneticHeading
         let accuracy = newHeading.headingAccuracy
         Task { @MainActor in
-            guard self.wantsRunning else { return }
-            self.headingAccuracy = accuracy
-            if let resolved = CompassMath.resolvedHeading(
-                trueHeading: trueHeading,
-                magneticHeading: magneticHeading,
-                accuracy: accuracy
-            ) {
-                self.heading = resolved
-            }
+            self.applyHeading(trueHeading: trueHeading, magneticHeading: magneticHeading, accuracy: accuracy)
         }
     }
 }
