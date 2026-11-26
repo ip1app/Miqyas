@@ -191,7 +191,6 @@ struct L10n {
     var toolSoundTitle: String { lang == .arabic ? "مقياس الصوت" : "Sound Meter" }
     var toolSoundSubtitle: String { lang == .arabic ? "مستوى تقريبي" : "Approximate level" }
     var toolSoundBadge: String { lang == .arabic ? "تقريبي" : "Approx" }
-    var toolsReorderHint: String { lang == .arabic ? "اسحب البطاقة لتغيير ترتيبها" : "Drag a card to reorder it" }
 
     var openSettings: String { lang == .arabic ? "فتح الإعدادات" : "Open Settings" }
     var tryAgain: String { lang == .arabic ? "إعادة المحاولة" : "Try Again" }

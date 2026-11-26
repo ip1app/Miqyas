@@ -64,4 +64,56 @@ final class ToolOrderTests: XCTestCase {
         XCTAssertNil(ToolOrder.moving(catalog, dragged: "level", to: "level"))
         XCTAssertNil(ToolOrder.moving(catalog, dragged: "missing", to: "level"))
     }
+
+    func testHideAndShowPersist() {
+        var layout = ToolOrder.layout(savedOrder: catalog, savedHidden: [], catalog: catalog)
+        layout = ToolOrder.togglingHidden(layout, id: "compass") ?? layout
+        XCTAssertEqual(layout.hidden, ["compass"])
+        XCTAssertEqual(layout.visible, ["level", "sound"])
+        ToolOrder.saveLayout(layout, to: defaults)
+
+        let loaded = ToolOrder.loadLayout(from: defaults, catalog: catalog)
+        XCTAssertEqual(loaded.hidden, ["compass"])
+        XCTAssertFalse(loaded.visible.contains("compass"))
+
+        let shown = ToolOrder.togglingHidden(loaded, id: "compass")
+        XCTAssertEqual(shown?.hidden, [])
+        XCTAssertEqual(shown?.visible, catalog)
+        ToolOrder.saveLayout(shown ?? loaded, to: defaults)
+        XCTAssertEqual(ToolOrder.loadLayout(from: defaults, catalog: catalog).hidden, [])
+    }
+
+    func testNewToolsAreAppendedAndStayVisible() {
+        let savedOrder = ["sound", "level"]
+        let savedHidden = ["sound", "removed-tool"]
+        let expanded = ["level", "compass", "sound", "ruler"]
+        let layout = ToolOrder.layout(savedOrder: savedOrder, savedHidden: savedHidden, catalog: expanded)
+
+        XCTAssertEqual(layout.order, ["sound", "level", "compass", "ruler"])
+        XCTAssertEqual(layout.hidden, ["sound"])
+        XCTAssertEqual(layout.visible, ["level", "compass", "ruler"])
+        XCTAssertFalse(layout.hidden.contains("ruler"))
+        XCTAssertFalse(layout.hidden.contains("compass"))
+    }
+
+    func testSettingsResetClearsHiddenToolsAndRestoresOrder() {
+        let layout = ToolOrder.layout(savedOrder: ["sound", "level", "compass"], savedHidden: ["level", "sound"], catalog: catalog)
+        ToolOrder.saveLayout(layout, to: defaults)
+        XCTAssertFalse(ToolOrder.loadLayout(from: defaults, catalog: catalog).hidden.isEmpty)
+
+        let reset = ToolOrder.reset(catalog: catalog)
+        ToolOrder.saveLayout(reset, to: defaults)
+
+        let loaded = ToolOrder.loadLayout(from: defaults, catalog: catalog)
+        XCTAssertEqual(loaded.order, catalog)
+        XCTAssertEqual(loaded.hidden, [])
+        XCTAssertEqual(loaded.visible, catalog)
+        XCTAssertEqual(defaults.stringArray(forKey: ToolOrder.hiddenDefaultsKey), [])
+    }
+
+    func testCannotHideTheLastVisibleTool() {
+        let layout = ToolOrder.layout(savedOrder: catalog, savedHidden: ["level", "compass"], catalog: catalog)
+        XCTAssertEqual(layout.visible, ["sound"])
+        XCTAssertNil(ToolOrder.togglingHidden(layout, id: "sound"))
+    }
 }

@@ -59,6 +59,7 @@ struct MeasuringToolsView: View {
     @State private var draggingToolID: String?
     @State private var lastDropTargetId: String?
     @State private var showingResetOrder = false
+    @State private var showCannotHideAlert = false
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -71,6 +72,10 @@ struct MeasuringToolsView: View {
                         editModeBanner
                     } else {
                         editButtonRow
+                    }
+
+                    if isEditingLayout && !settings.hiddenMeasuringTools.isEmpty {
+                        hiddenToolsTray
                     }
 
                     toolGrid
@@ -90,6 +95,11 @@ struct MeasuringToolsView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: MeasuringTool.self) { tool in
                 toolDestination(tool)
+            }
+            .alert(settings.l10n.cannotHideAll, isPresented: $showCannotHideAlert) {
+                Button(settings.l10n.done, role: .cancel) { }
+            } message: {
+                Text(settings.l10n.cannotHideAllMsg)
             }
         }
         .onChange(of: router.toolsPopToken) { _, _ in
@@ -199,7 +209,7 @@ struct MeasuringToolsView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(settings.l10n.editModeTitle)
                     .font(.system(size: 15, weight: .heavy, design: .rounded))
-                Text(settings.l10n.toolsReorderHint)
+                Text(settings.l10n.reorderHint)
                     .font(.system(size: 11, weight: .medium))
                     .foregroundColor(.secondary)
                     .lineLimit(2)
@@ -248,6 +258,7 @@ struct MeasuringToolsView: View {
                         isDragging: draggingToolID == tool.id,
                         onOpen: { open(tool) },
                         onLongPress: { },
+                        onHide: { hide(tool) },
                         onMoveEarlier: { settings.moveMeasuringToolEarlier(tool.id) },
                         onMoveLater: { settings.moveMeasuringToolLater(tool.id) }
                     )
@@ -283,6 +294,7 @@ struct MeasuringToolsView: View {
                         isDragging: false,
                         onOpen: { open(tool) },
                         onLongPress: { enterEditMode() },
+                        onHide: { },
                         onMoveEarlier: { },
                         onMoveLater: { }
                     )
@@ -318,6 +330,77 @@ struct MeasuringToolsView: View {
                 }
             }
             Button(settings.l10n.cancel, role: .cancel) { }
+        }
+    }
+
+    private var hiddenToolsTray: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "eye.slash.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.secondary)
+                Text(settings.l10n.hiddenCardsTitle)
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                Spacer()
+                if !settings.hiddenMeasuringTools.isEmpty {
+                    Button(settings.l10n.showAllCards) {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            settings.showAllMeasuringTools()
+                        }
+                    }
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundColor(.blue)
+                }
+            }
+
+            if settings.hiddenMeasuringTools.isEmpty {
+                Text(settings.l10n.noHiddenCards)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+            } else {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(settings.hiddenMeasuringTools) { tool in
+                            Button {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                                    settings.toggleMeasuringToolHidden(tool.id)
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: tool.icon)
+                                        .font(.system(size: 11, weight: .bold))
+                                    Text(tool.title(using: settings.l10n))
+                                        .font(.system(size: 12, weight: .bold, design: .rounded))
+                                        .lineLimit(1)
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 11, weight: .bold))
+                                }
+                                .foregroundColor(tool.gradient.first ?? .blue)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 7)
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .clipShape(Capsule())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 2)
+                }
+            }
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial))
+        .transition(.opacity)
+    }
+
+    private func hide(_ tool: MeasuringTool) {
+        guard settings.canHideMoreMeasuringTools else {
+            settings.triggerFeedback(impact: .heavy)
+            showCannotHideAlert = true
+            return
+        }
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            settings.toggleMeasuringToolHidden(tool.id)
         }
     }
 
@@ -363,6 +446,7 @@ private struct ToolGridCard: View {
     let isDragging: Bool
     let onOpen: () -> Void
     let onLongPress: () -> Void
+    let onHide: () -> Void
     let onMoveEarlier: () -> Void
     let onMoveLater: () -> Void
 
@@ -371,6 +455,31 @@ private struct ToolGridCard: View {
     @State private var wiggle = false
 
     var body: some View {
+        cardButton
+            .overlay(alignment: .topLeading) {
+                if isEditing {
+                    Button(action: onHide) {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white)
+                            Circle()
+                                .stroke(Color.red.opacity(0.2), lineWidth: 1)
+                            Image(systemName: "minus.circle.fill")
+                                .font(.system(size: 21, weight: .bold))
+                                .foregroundColor(.red)
+                        }
+                        .frame(width: 23, height: 23)
+                        .shadow(color: Color.black.opacity(0.18), radius: 3, y: 1)
+                    }
+                    .buttonStyle(.plain)
+                    .offset(x: -7, y: -7)
+                    .accessibilityLabel(settings.l10n.hideCard)
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+    }
+
+    private var cardButton: some View {
         Button {
             if suppressTap {
                 suppressTap = false
@@ -405,9 +514,10 @@ private struct ToolGridCard: View {
             updateWiggle(for: editing)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityHint(isEditing ? settings.l10n.toolsReorderHint : "")
+        .accessibilityHint(isEditing ? settings.l10n.reorderHint : "")
         .accessibilityActions {
             if isEditing {
+                Button(settings.l10n.hideCard, action: onHide)
                 Button(settings.l10n.moveEarlier, action: onMoveEarlier)
                 Button(settings.l10n.moveLater, action: onMoveLater)
             }

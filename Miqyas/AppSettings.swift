@@ -34,6 +34,12 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    @Published var hiddenMeasuringToolIds: [String] = [] {
+        didSet {
+            UserDefaults.standard.set(hiddenMeasuringToolIds, forKey: ToolOrder.hiddenDefaultsKey)
+        }
+    }
+
     @Published var hiddenCategoryIds: [String] = [] {
         didSet {
             UserDefaults.standard.set(hiddenCategoryIds, forKey: "home_hidden_categories")
@@ -177,34 +183,72 @@ final class AppSettings: ObservableObject {
 
     // MARK: - Measuring Tool Order
 
+    private var measuringToolCatalog: [String] {
+        MeasuringTool.allCases.map(\.rawValue)
+    }
+
+    /// Every tool in the saved order, including hidden ones. New tools are appended.
+    var allMeasuringToolsInOrder: [MeasuringTool] {
+        ToolOrder.merged(saved: toolOrder, catalog: measuringToolCatalog).compactMap(MeasuringTool.init(rawValue:))
+    }
+
+    /// Tools shown on the grid.
     var orderedMeasuringTools: [MeasuringTool] {
-        let catalog = MeasuringTool.allCases.map(\.rawValue)
-        return ToolOrder.merged(saved: toolOrder, catalog: catalog).compactMap(MeasuringTool.init(rawValue:))
+        let hidden = Set(ToolOrder.mergedHidden(saved: hiddenMeasuringToolIds, catalog: measuringToolCatalog))
+        return allMeasuringToolsInOrder.filter { !hidden.contains($0.id) }
+    }
+
+    /// Tools hidden from the grid, in the saved order.
+    var hiddenMeasuringTools: [MeasuringTool] {
+        let hidden = Set(ToolOrder.mergedHidden(saved: hiddenMeasuringToolIds, catalog: measuringToolCatalog))
+        return allMeasuringToolsInOrder.filter { hidden.contains($0.id) }
+    }
+
+    var canHideMoreMeasuringTools: Bool {
+        orderedMeasuringTools.count > 1
     }
 
     func moveMeasuringTool(_ draggedId: String, to targetId: String) {
-        let current = orderedMeasuringTools.map(\.rawValue)
+        let current = allMeasuringToolsInOrder.map(\.rawValue)
         guard let updated = ToolOrder.moving(current, dragged: draggedId, to: targetId) else { return }
         toolOrder = updated
         triggerDragFeedback()
     }
 
     func moveMeasuringToolEarlier(_ id: String) {
-        let current = orderedMeasuringTools.map(\.rawValue)
+        let current = allMeasuringToolsInOrder.map(\.rawValue)
         guard let updated = ToolOrder.movingEarlier(current, id: id) else { return }
         toolOrder = updated
         triggerDragFeedback()
     }
 
     func moveMeasuringToolLater(_ id: String) {
-        let current = orderedMeasuringTools.map(\.rawValue)
+        let current = allMeasuringToolsInOrder.map(\.rawValue)
         guard let updated = ToolOrder.movingLater(current, id: id) else { return }
         toolOrder = updated
         triggerDragFeedback()
     }
 
+    func toggleMeasuringToolHidden(_ id: String) {
+        if hiddenMeasuringToolIds.contains(id) {
+            hiddenMeasuringToolIds.removeAll { $0 == id }
+            triggerFeedback()
+        } else {
+            guard canHideMoreMeasuringTools else { return }
+            hiddenMeasuringToolIds.append(id)
+            triggerFeedback()
+        }
+    }
+
+    func showAllMeasuringTools() {
+        guard !hiddenMeasuringToolIds.isEmpty else { return }
+        hiddenMeasuringToolIds.removeAll()
+        triggerFeedback()
+    }
+
     func resetMeasuringToolOrder() {
         toolOrder = MeasuringTool.allCases.map(\.rawValue)
+        hiddenMeasuringToolIds.removeAll()
         triggerFeedback()
     }
 
@@ -255,6 +299,9 @@ final class AppSettings: ObservableObject {
         }
         if let savedToolOrder = UserDefaults.standard.stringArray(forKey: ToolOrder.defaultsKey) {
             toolOrder = savedToolOrder
+        }
+        if let savedHiddenTools = UserDefaults.standard.stringArray(forKey: ToolOrder.hiddenDefaultsKey) {
+            hiddenMeasuringToolIds = savedHiddenTools
         }
 
         history = loadHistory()
