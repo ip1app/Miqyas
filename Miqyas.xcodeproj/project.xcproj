@@ -45,6 +45,8 @@
         "INFOPLIST_KEY_CFBundleDisplayName": "Miqyas",
         "INFOPLIST_KEY_NSLocationWhenInUseUsageDescription": "Miqyas uses your location while the app is open to show the Qibla direction and the distance to Makkah.",
         "INFOPLIST_KEY_NSMicrophoneUsageDescription": "Miqyas uses the microphone to show an approximate sound level while the sound meter is open.",
+        "INFOPLIST_KEY_NSCameraUsageDescription": "Miqyas uses the camera to estimate brightness and to measure distance in augmented reality while those tools are open.",
+        "INFOPLIST_KEY_NSMotionUsageDescription": "Miqyas uses motion sensors to measure tilt, pressure, steps, magnetic field, and vibration while those tools are open.",
         "INFOPLIST_KEY_LSApplicationCategoryType": "public.app-category.utilities",
         "INFOPLIST_KEY_UIApplicationSceneManifest_Generation": "YES",
         "INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents": "YES",

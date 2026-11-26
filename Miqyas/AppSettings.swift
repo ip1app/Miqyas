@@ -84,6 +84,10 @@ final class AppSettings: ObservableObject {
     /// prompted version are persisted; the on-screen signature is not.
     private var reviewTracker = ReviewPromptTracker()
 
+    /// Hardware that is missing on this device. These ids stay in the saved order
+    /// and are not written into the hidden-tools list.
+    private let unavailableMeasuringToolIDs: Set<String>
+
     var l10n: L10n {
         L10n(lang: appLanguage)
     }
@@ -192,20 +196,32 @@ final class AppSettings: ObservableObject {
         ToolOrder.merged(saved: toolOrder, catalog: measuringToolCatalog).compactMap(MeasuringTool.init(rawValue:))
     }
 
-    /// Tools shown on the grid.
+    /// Tools shown on the grid. User-hidden and hardware-unavailable tools are omitted.
     var orderedMeasuringTools: [MeasuringTool] {
-        let hidden = Set(ToolOrder.mergedHidden(saved: hiddenMeasuringToolIds, catalog: measuringToolCatalog))
-        return allMeasuringToolsInOrder.filter { !hidden.contains($0.id) }
+        tools(withIDs: ToolOrder.displayedIDs(measuringToolLayout, unavailable: unavailableMeasuringToolIDs))
     }
 
-    /// Tools hidden from the grid, in the saved order.
+    /// Tools the user hid that this device can still show, in the saved order.
     var hiddenMeasuringTools: [MeasuringTool] {
-        let hidden = Set(ToolOrder.mergedHidden(saved: hiddenMeasuringToolIds, catalog: measuringToolCatalog))
+        let hidden = Set(measuringToolLayout.hidden.filter { !unavailableMeasuringToolIDs.contains($0) })
         return allMeasuringToolsInOrder.filter { hidden.contains($0.id) }
     }
 
     var canHideMoreMeasuringTools: Bool {
         orderedMeasuringTools.count > 1
+    }
+
+    private var measuringToolLayout: ToolOrder.Layout {
+        ToolOrder.layout(
+            savedOrder: toolOrder,
+            savedHidden: hiddenMeasuringToolIds,
+            catalog: measuringToolCatalog
+        )
+    }
+
+    private func tools(withIDs ids: [String]) -> [MeasuringTool] {
+        let byID = Dictionary(uniqueKeysWithValues: MeasuringTool.allCases.map { ($0.rawValue, $0) })
+        return ids.compactMap { byID[$0] }
     }
 
     func moveMeasuringTool(_ draggedId: String, to targetId: String) {
@@ -230,14 +246,13 @@ final class AppSettings: ObservableObject {
     }
 
     func toggleMeasuringToolHidden(_ id: String) {
-        if hiddenMeasuringToolIds.contains(id) {
-            hiddenMeasuringToolIds.removeAll { $0 == id }
-            triggerFeedback()
-        } else {
-            guard canHideMoreMeasuringTools else { return }
-            hiddenMeasuringToolIds.append(id)
-            triggerFeedback()
-        }
+        guard let updated = ToolOrder.togglingHidden(
+            measuringToolLayout,
+            id: id,
+            unavailable: unavailableMeasuringToolIDs
+        ) else { return }
+        hiddenMeasuringToolIds = updated.hidden
+        triggerFeedback()
     }
 
     func showAllMeasuringTools() {
@@ -278,6 +293,9 @@ final class AppSettings: ObservableObject {
     }
 
     private init() {
+        unavailableMeasuringToolIDs = Set(MeasuringTool.allCases.map(\.rawValue))
+            .subtracting(MeasuringToolHardware.availableIDs())
+
         if let savedLang = UserDefaults.standard.string(forKey: "app_language"),
            let lang = AppLanguage(rawValue: savedLang) {
             appLanguage = lang

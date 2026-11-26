@@ -7,6 +7,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
     case level
     case compass
     case sound
+    case ruler
+    case protractor
+    case barometer
+    case pedometer
+    case speedometer
+    case light
+    case magnetometer
+    case seismometer
+    case ar
 
     var id: String { rawValue }
 
@@ -15,6 +24,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return l10n.toolLevelTitle
         case .compass: return l10n.toolCompassTitle
         case .sound: return l10n.toolSoundTitle
+        case .ruler: return l10n.toolRulerTitle
+        case .protractor: return l10n.toolProtractorTitle
+        case .barometer: return l10n.toolBarometerTitle
+        case .pedometer: return l10n.toolPedometerTitle
+        case .speedometer: return l10n.toolSpeedTitle
+        case .light: return l10n.toolLightTitle
+        case .magnetometer: return l10n.toolMagnetTitle
+        case .seismometer: return l10n.toolSeismoTitle
+        case .ar: return l10n.toolARTitle
         }
     }
 
@@ -23,6 +41,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return l10n.toolLevelSubtitle
         case .compass: return l10n.toolCompassSubtitle
         case .sound: return l10n.toolSoundSubtitle
+        case .ruler: return l10n.toolRulerSubtitle
+        case .protractor: return l10n.toolProtractorSubtitle
+        case .barometer: return l10n.toolBarometerSubtitle
+        case .pedometer: return l10n.toolPedometerSubtitle
+        case .speedometer: return l10n.toolSpeedSubtitle
+        case .light: return l10n.toolLightSubtitle
+        case .magnetometer: return l10n.toolMagnetSubtitle
+        case .seismometer: return l10n.toolSeismoSubtitle
+        case .ar: return l10n.toolARSubtitle
         }
     }
 
@@ -31,6 +58,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return l10n.toolLevelBadge
         case .compass: return l10n.toolCompassBadge
         case .sound: return l10n.toolSoundBadge
+        case .ruler: return l10n.toolRulerBadge
+        case .protractor: return l10n.toolProtractorBadge
+        case .barometer: return l10n.toolBarometerBadge
+        case .pedometer: return l10n.toolPedometerBadge
+        case .speedometer: return l10n.toolSpeedBadge
+        case .light: return l10n.toolLightBadge
+        case .magnetometer: return l10n.toolMagnetBadge
+        case .seismometer: return l10n.toolSeismoBadge
+        case .ar: return l10n.toolARBadge
         }
     }
 
@@ -39,6 +75,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return "circle.grid.cross.fill"
         case .compass: return "location.north.line.fill"
         case .sound: return "waveform"
+        case .ruler: return "ruler.fill"
+        case .protractor: return "angle"
+        case .barometer: return "barometer"
+        case .pedometer: return "figure.walk"
+        case .speedometer: return "speedometer"
+        case .light: return "sun.max.fill"
+        case .magnetometer: return "magnet"
+        case .seismometer: return "waveform.path.ecg"
+        case .ar: return "viewfinder"
         }
     }
 
@@ -47,6 +92,15 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         case .level: return [Color.blue, Color.cyan]
         case .compass: return [Color.teal, Color.green]
         case .sound: return [Color.orange, Color.pink]
+        case .ruler: return [Color.indigo, Color.blue]
+        case .protractor: return [Color.purple, Color.indigo]
+        case .barometer: return [Color.teal, Color.blue]
+        case .pedometer: return [Color.green, Color.mint]
+        case .speedometer: return [Color.red, Color.orange]
+        case .light: return [Color.yellow, Color.orange]
+        case .magnetometer: return [Color.pink, Color.purple]
+        case .seismometer: return [Color.mint, Color.cyan]
+        case .ar: return [Color.blue, Color.purple]
         }
     }
 }
@@ -436,6 +490,24 @@ struct MeasuringToolsView: View {
             CompassQiblaToolView()
         case .sound:
             SoundMeterToolView()
+        case .ruler:
+            ScreenRulerToolView()
+        case .protractor:
+            ProtractorToolView()
+        case .barometer:
+            BarometerToolView()
+        case .pedometer:
+            PedometerToolView()
+        case .speedometer:
+            SpeedometerToolView()
+        case .light:
+            LightMeterToolView()
+        case .magnetometer:
+            MagnetometerToolView()
+        case .seismometer:
+            SeismometerToolView()
+        case .ar:
+            ARMeasureToolView()
         }
     }
 }
@@ -690,6 +762,63 @@ struct ToolHintText: View {
             .multilineTextAlignment(.center)
             .frame(maxWidth: .infinity)
             .fixedSize(horizontal: false, vertical: true)
+    }
+}
+
+struct ToolValueReadout: View {
+    let value: String
+    let unit: String
+    var caption: String?
+    var tint: Color = .primary
+
+    var body: some View {
+        VStack(spacing: 4) {
+            HStack(alignment: .firstTextBaseline, spacing: 6) {
+                Text(value)
+                    .font(.system(size: 56, weight: .bold, design: .rounded).monospacedDigit())
+                    .foregroundColor(tint)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+                Text(unit)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+            }
+            .environment(\.layoutDirection, .leftToRight)
+            if let caption {
+                Text(caption)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct ToolStatPill: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(spacing: 4) {
+            Text(title)
+                .font(.caption.weight(.semibold))
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(value)
+                .font(.system(.title3, design: .rounded).weight(.bold).monospacedDigit())
+                .foregroundColor(.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .environment(\.layoutDirection, .leftToRight)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 12)
+        .padding(.horizontal, 6)
+        .toolGlass(cornerRadius: 16)
     }
 }
 

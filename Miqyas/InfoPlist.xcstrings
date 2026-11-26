@@ -68,6 +68,40 @@
           }
         }
       }
+    },
+    "NSCameraUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم مقياس الكاميرا لتقدير الإضاءة وقياس المسافة بالواقع المعزّز أثناء فتح هذه الأدوات."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miqyas uses the camera to estimate brightness and to measure distance in augmented reality while those tools are open."
+          }
+        }
+      }
+    },
+    "NSMotionUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم مقياس مستشعرات الحركة لقياس الميل والضغط والخطوات والمجال المغناطيسي والاهتزاز أثناء فتح هذه الأدوات."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miqyas uses motion sensors to measure tilt, pressure, steps, magnetic field, and vibration while those tools are open."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

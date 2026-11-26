@@ -116,4 +116,43 @@ final class ToolOrderTests: XCTestCase {
         XCTAssertEqual(layout.visible, ["sound"])
         XCTAssertNil(ToolOrder.togglingHidden(layout, id: "sound"))
     }
+
+    func testUpgradeAppendsTheNewMeasuringToolsAfterTheSavedOrder() {
+        let saved = ["sound", "level", "compass"]
+        let catalog = MeasuringTool.allCases.map(\.rawValue)
+        XCTAssertEqual(Array(catalog.prefix(3)), ["level", "compass", "sound"])
+        XCTAssertEqual(
+            Array(catalog.dropFirst(3)),
+            ["ruler", "protractor", "barometer", "pedometer", "speedometer", "light", "magnetometer", "seismometer", "ar"]
+        )
+
+        let merged = ToolOrder.merged(saved: saved, catalog: catalog)
+        XCTAssertEqual(Array(merged.prefix(3)), saved)
+        XCTAssertEqual(Array(merged.dropFirst(3)), Array(catalog.dropFirst(3)))
+
+        let reset = ToolOrder.reset(catalog: catalog)
+        XCTAssertEqual(reset.order, catalog)
+        XCTAssertEqual(reset.hidden, [])
+        XCTAssertEqual(reset.visible, catalog)
+    }
+
+    func testUnavailableToolsStayInTheOrderAndDoNotCountAsTheLastCard() {
+        let catalog = ["level", "compass", "sound", "ruler", "barometer"]
+        let layout = ToolOrder.layout(savedOrder: ["sound", "level", "compass"], savedHidden: [], catalog: catalog)
+        XCTAssertEqual(layout.order, ["sound", "level", "compass", "ruler", "barometer"])
+
+        let unavailable: Set<String> = ["compass", "sound", "ruler", "barometer"]
+        XCTAssertEqual(ToolOrder.displayedIDs(layout, unavailable: unavailable), ["level"])
+        XCTAssertNil(ToolOrder.togglingHidden(layout, id: "level", unavailable: unavailable))
+        XCTAssertNil(ToolOrder.togglingHidden(layout, id: "barometer", unavailable: unavailable))
+
+        let hidden = ToolOrder.togglingHidden(layout, id: "sound", unavailable: ["ruler", "barometer"])
+        XCTAssertEqual(hidden?.order, layout.order)
+        XCTAssertEqual(hidden?.hidden, ["sound"])
+        XCTAssertTrue(hidden?.order.contains("barometer") == true)
+        XCTAssertEqual(
+            ToolOrder.displayedIDs(hidden ?? layout, unavailable: ["ruler", "barometer"]),
+            ["level", "compass"]
+        )
+    }
 }

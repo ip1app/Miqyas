@@ -180,7 +180,7 @@ struct L10n {
     // Measuring Tools
     var tabTools: String { lang == .arabic ? "أدوات القياس" : "Measuring Tools" }
     var toolsHeadline: String { lang == .arabic ? "أدوات القياس" : "Measuring Tools" }
-    var toolsSubtitle: String { lang == .arabic ? "ميزان استواء، بوصلة القبلة، ومقياس صوت" : "Level, Qibla compass, and sound meter" }
+    var toolsSubtitle: String { lang == .arabic ? "مسطرة، زاوية، ارتفاع، خطوات، والمزيد" : "Ruler, angle, altitude, steps, and more" }
 
     var toolLevelTitle: String { lang == .arabic ? "ميزان استواء" : "Level" }
     var toolLevelSubtitle: String { lang == .arabic ? "فقاعة وزاوية" : "Bubble and angle" }
@@ -264,6 +264,129 @@ struct L10n {
     var soundMicUnavailable: String { lang == .arabic ? "الميكروفون غير متوفر على هذا الجهاز، لذلك لا يمكن قياس الصوت." : "The microphone is not available on this device, so sound cannot be measured." }
     var soundFailed: String { lang == .arabic ? "تعذر بدء قياس الصوت. حاول مرة أخرى." : "The sound meter could not start. Try again." }
     var soundMeasuring: String { lang == .arabic ? "جارٍ القياس" : "Measuring" }
+
+    var approximateReading: String { lang == .arabic ? "تقريبي" : "Approximate" }
+    var motionDeniedMessage: String { lang == .arabic ? "يلزم السماح بالحركة واللياقة لاستخدام هذه الأداة. يمكنك تفعيل ذلك من الإعدادات." : "Allow Motion & Fitness to use this tool. You can turn it on in Settings." }
+    var motionPromptMessage: String { lang == .arabic ? "سيطلب مقياس استخدام مستشعرات الحركة لهذا القياس." : "Miqyas will ask to use motion sensors for this measurement." }
+    var motionUnavailableMessage: String { lang == .arabic ? "مستشعر الحركة غير متوفر على هذا الجهاز." : "Motion sensors are not available on this device." }
+    var cameraDeniedMessage: String { lang == .arabic ? "يلزم السماح بالكاميرا لاستخدام هذه الأداة. يمكنك تفعيل ذلك من الإعدادات." : "Allow camera access to use this tool. You can turn it on in Settings." }
+    var cameraPromptMessage: String { lang == .arabic ? "سيطلب مقياس استخدام الكاميرا لهذا القياس. لا يتم حفظ الصور." : "Miqyas will ask to use the camera for this measurement. No photos are saved." }
+    var cameraUnavailableMessage: String { lang == .arabic ? "الكاميرا غير متوفرة على هذا الجهاز." : "The camera is not available on this device." }
+
+    var unitCentimeter: String { lang == .arabic ? "سم" : "cm" }
+    var unitMeter: String { lang == .arabic ? "م" : "m" }
+    var unitInch: String { lang == .arabic ? "بوصة" : "in" }
+    var unitFoot: String { lang == .arabic ? "قدم" : "ft" }
+    var unitSquareCentimeter: String { lang == .arabic ? "سم²" : "cm²" }
+    var unitSquareMeter: String { lang == .arabic ? "م²" : "m²" }
+    var unitSquareInch: String { lang == .arabic ? "بوصة²" : "in²" }
+    var unitSquareFoot: String { lang == .arabic ? "قدم²" : "ft²" }
+
+    var toolRulerTitle: String { lang == .arabic ? "مسطرة الشاشة" : "Screen Ruler" }
+    var toolRulerSubtitle: String { lang == .arabic ? "سنتيمتر وبوصة" : "Centimeters and inches" }
+    var toolRulerBadge: String { lang == .arabic ? "شاشة" : "Screen" }
+    var rulerCentimeters: String { lang == .arabic ? "سم" : "cm" }
+    var rulerInches: String { lang == .arabic ? "بوصة" : "in" }
+    var rulerHorizontal: String { lang == .arabic ? "أفقي" : "Horizontal" }
+    var rulerVertical: String { lang == .arabic ? "رأسي" : "Vertical" }
+    var rulerMarker: String { lang == .arabic ? "المؤشر" : "Marker" }
+    var rulerScreenSize: String { lang == .arabic ? "مقاس الشاشة" : "This screen" }
+    var rulerHint: String { lang == .arabic ? "اسحب المؤشر. تعتمد العلامات على كثافة شاشة هذا الجهاز، فالسنتيمتر على المسطرة سنتيمتر حقيقي." : "Drag the marker. The marks use this device's screen density, so a centimeter on the ruler is a real centimeter." }
+
+    var toolProtractorTitle: String { lang == .arabic ? "منقلة" : "Protractor" }
+    var toolProtractorSubtitle: String { lang == .arabic ? "الميل والزاوية" : "Tilt and angle" }
+    var toolProtractorBadge: String { lang == .arabic ? "زاوية" : "Angle" }
+    var protractorTilt: String { lang == .arabic ? "الميل" : "Tilt" }
+    var protractorFromFlat: String { lang == .arabic ? "عن الوضع الأفقي" : "From flat" }
+    var protractorBetween: String { lang == .arabic ? "الزاوية بين الوضعين" : "Angle between" }
+    var protractorNoStart: String { lang == .arabic ? "لم تُثبَّت البداية" : "No starting pose" }
+    var protractorCapture: String { lang == .arabic ? "تثبيت البداية" : "Set Start" }
+    var protractorClear: String { lang == .arabic ? "مسح البداية" : "Clear Start" }
+    var protractorHint: String { lang == .arabic ? "الميل هو الزاوية عن وضع الشاشة الأفقية. الزاوية الثانية هي الفرق بين الوضع المحفوظ والوضع الحالي." : "Tilt is the angle from a flat, screen-up pose. The second angle is the turn between the saved pose and the current one." }
+
+    var toolBarometerTitle: String { lang == .arabic ? "مقياس الضغط" : "Barometer" }
+    var toolBarometerSubtitle: String { lang == .arabic ? "الضغط والارتفاع" : "Pressure and altitude" }
+    var toolBarometerBadge: String { lang == .arabic ? "تقريبي" : "Approx" }
+    var barometerPressure: String { lang == .arabic ? "الضغط" : "Pressure" }
+    var barometerHpa: String { lang == .arabic ? "هكتوباسكال" : "hPa" }
+    var barometerAltitude: String { lang == .arabic ? "الارتفاع" : "Altitude" }
+    var barometerChange: String { lang == .arabic ? "التغيّر" : "Change" }
+    var barometerEstimate: String { lang == .arabic ? "ارتفاع تقديري" : "Estimated altitude" }
+    var barometerAbsoluteCaption: String { lang == .arabic ? "ارتفاع تقريبي عن سطح البحر" : "Approximate height above sea level" }
+    var barometerRelativeCaption: String { lang == .arabic ? "تغيّر تقريبي منذ فتح الأداة" : "Approximate change since this tool opened" }
+    var barometerEstimateCaption: String { lang == .arabic ? "تقريبي بافتراض الضغط القياسي عند سطح البحر" : "Approximate, assuming standard sea-level pressure" }
+    var barometerUnavailable: String { lang == .arabic ? "مقياس الضغط غير متوفر على هذا الجهاز." : "The barometer is not available on this device." }
+    var barometerHint: String { lang == .arabic ? "الارتفاع تقريبي. الطقس يغيّر الضغط، لذلك الرقم ليس ارتفاعًا مساحيًا." : "Altitude is approximate. Weather changes the pressure, so this is not a surveyed height." }
+
+    var toolPedometerTitle: String { lang == .arabic ? "عداد الخطوات" : "Pedometer" }
+    var toolPedometerSubtitle: String { lang == .arabic ? "الخطوات والمسافة" : "Steps and distance" }
+    var toolPedometerBadge: String { lang == .arabic ? "اليوم" : "Today" }
+    var pedometerSteps: String { lang == .arabic ? "الخطوات" : "Steps" }
+    var pedometerDistance: String { lang == .arabic ? "المسافة" : "Distance" }
+    var pedometerToday: String { lang == .arabic ? "منذ بداية اليوم" : "Since the start of today" }
+    var pedometerUnavailable: String { lang == .arabic ? "عدّ الخطوات غير متوفر على هذا الجهاز." : "Step counting is not available on this device." }
+    var pedometerNoDistance: String { lang == .arabic ? "المسافة غير متوفرة من عداد هذا الجهاز." : "Distance is not available from this device's pedometer." }
+    var pedometerHint: String { lang == .arabic ? "تُحسب الخطوات والمسافة من بداية اليوم على هذا الجهاز." : "Steps and distance are counted from the start of today on this device." }
+
+    var toolSpeedTitle: String { lang == .arabic ? "عداد السرعة" : "Speedometer" }
+    var toolSpeedSubtitle: String { lang == .arabic ? "سرعة الموقع" : "GPS speed" }
+    var toolSpeedBadge: String { lang == .arabic ? "موقع" : "GPS" }
+    var speedCurrent: String { lang == .arabic ? "السرعة" : "Speed" }
+    var speedMax: String { lang == .arabic ? "القصوى" : "Max" }
+    var speedResetMax: String { lang == .arabic ? "تصفير القصوى" : "Reset Max" }
+    var speedWaiting: String { lang == .arabic ? "بانتظار إشارة الموقع. تظهر السرعة عندما تصبح الدقة كافية." : "Waiting for a GPS fix. Speed appears once the location is accurate enough." }
+    var speedUnavailable: String { lang == .arabic ? "عتاد الموقع غير متوفر على هذا الجهاز." : "Location hardware is not available on this device." }
+    var speedKmh: String { lang == .arabic ? "كم/س" : "km/h" }
+    var speedMph: String { lang == .arabic ? "ميل/س" : "mph" }
+    var speedMs: String { lang == .arabic ? "م/ث" : "m/s" }
+    var speedDeniedMessage: String { lang == .arabic ? "يلزم السماح بالموقع أثناء استخدام التطبيق لقياس السرعة. يمكنك تفعيل ذلك من الإعدادات." : "Allow location access while using the app to measure speed. You can turn it on in Settings." }
+    var speedPromptMessage: String { lang == .arabic ? "سيطلب مقياس إذن الموقع أثناء استخدام التطبيق لإظهار سرعتك الحالية." : "Miqyas will ask for location access while the app is open to show your current speed." }
+
+    var toolLightTitle: String { lang == .arabic ? "مقياس الضوء" : "Light Meter" }
+    var toolLightSubtitle: String { lang == .arabic ? "لوكس تقريبي" : "Approximate lux" }
+    var toolLightBadge: String { lang == .arabic ? "تقريبي" : "Approx" }
+    var lightLux: String { lang == .arabic ? "لوكس" : "lux" }
+    var lightISO: String { lang == .arabic ? "حساسية" : "ISO" }
+    var lightShutter: String { lang == .arabic ? "الغالق" : "Shutter" }
+    var lightAperture: String { lang == .arabic ? "الفتحة" : "Aperture" }
+    var lightHint: String { lang == .arabic ? "إضاءة تقريبية من تعريض الكاميرا. هذا ليس مقياس ضوء معايرًا، ولا يتم حفظ أي صورة." : "Approximate illuminance from the camera's exposure. This is not a calibrated light meter, and no photo is saved." }
+    var lightFailed: String { lang == .arabic ? "تعذر بدء الكاميرا. حاول مرة أخرى." : "The camera could not start. Try again." }
+
+    var toolMagnetTitle: String { lang == .arabic ? "كاشف المعادن" : "Metal Detector" }
+    var toolMagnetSubtitle: String { lang == .arabic ? "المجال المغناطيسي" : "Magnetic field" }
+    var toolMagnetBadge: String { lang == .arabic ? "تقريبي" : "Approx" }
+    var magnetMicrotesla: String { lang == .arabic ? "مكروتسلا" : "µT" }
+    var magnetHaptics: String { lang == .arabic ? "اهتزاز عند القفزات" : "Haptic on spikes" }
+    var magnetCalibrate: String { lang == .arabic ? "حرّك الهاتف على شكل رقم 8 لتحسين القراءة المغناطيسية." : "Move the phone in a figure-8 to improve the magnetic reading." }
+    var magnetHint: String { lang == .arabic ? "قوة تقريبية للمجال المغناطيسي. المعدن القريب يجعل القيمة تقفز. مجال الأرض عادة بين ٢٥ و٦٥ مكروتسلا." : "Approximate magnetic-field strength. Metal nearby makes the value jump. Earth's field is usually 25–65 µT." }
+    var magnetUnavailable: String { lang == .arabic ? "مستشعر المغناطيس غير متوفر على هذا الجهاز." : "The magnetometer is not available on this device." }
+
+    var toolSeismoTitle: String { lang == .arabic ? "مقياس الاهتزاز" : "Seismometer" }
+    var toolSeismoSubtitle: String { lang == .arabic ? "رسم الاهتزاز" : "Vibration graph" }
+    var toolSeismoBadge: String { lang == .arabic ? "مباشر" : "Live" }
+    var seismoNow: String { lang == .arabic ? "الآن" : "Now" }
+    var seismoPeak: String { lang == .arabic ? "الذروة" : "Peak" }
+    var seismoReset: String { lang == .arabic ? "تصفير الذروة" : "Reset Peak" }
+    var seismoHint: String { lang == .arabic ? "يعرض الرسم الحركة بعد حذف الجاذبية. الهاتف الساكن يبقى قرب الصفر." : "The graph shows movement, with gravity removed. A still phone stays near zero." }
+    var seismoUnavailable: String { lang == .arabic ? "مقياس التسارع غير متوفر على هذا الجهاز." : "The accelerometer is not available on this device." }
+    var seismoUnit: String { lang == .arabic ? "ج" : "g" }
+
+    var toolARTitle: String { lang == .arabic ? "قياس معزّز" : "AR Measure" }
+    var toolARSubtitle: String { lang == .arabic ? "المسافة والمساحة" : "Distance and area" }
+    var toolARBadge: String { lang == .arabic ? "واقع" : "AR" }
+    var arDistanceMode: String { lang == .arabic ? "مسافة" : "Distance" }
+    var arAreaMode: String { lang == .arabic ? "مساحة" : "Area" }
+    var arClear: String { lang == .arabic ? "مسح" : "Clear" }
+    var arTapFirst: String { lang == .arabic ? "حرّك الهاتف حتى يظهر سطح، ثم المس النقطة الأولى." : "Move the phone until a surface appears, then tap the first point." }
+    var arTapSecond: String { lang == .arabic ? "المس النقطة الثانية لقياس المسافة." : "Tap the second point to measure the distance." }
+    var arTapWidth: String { lang == .arabic ? "المس نهاية الضلع الأول للمستطيل." : "Tap the end of the rectangle's first side." }
+    var arTapHeight: String { lang == .arabic ? "المس نقطة لتحديد الضلع الآخر للمستطيل." : "Tap a point to set the other side of the rectangle." }
+    var arNeedSurface: String { lang == .arabic ? "لم يُعثر على سطح. حرّك الهاتف ببطء ثم أعد المحاولة." : "No surface found. Move the phone slowly, then try again." }
+    var arDone: String { lang == .arabic ? "المس مسح للبدء من جديد." : "Tap Clear to measure again." }
+    var arUnsupported: String { lang == .arabic ? "القياس بالواقع المعزّز غير مدعوم على هذا الجهاز." : "AR measurement is not supported on this device." }
+    var arWidth: String { lang == .arabic ? "العرض" : "Width" }
+    var arHeight: String { lang == .arabic ? "الارتفاع" : "Height" }
+    var arArea: String { lang == .arabic ? "المساحة" : "Area" }
 }
 
 // MARK: - Shared Formatting & Sharing Helpers

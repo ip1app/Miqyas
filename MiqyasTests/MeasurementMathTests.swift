@@ -297,6 +297,163 @@ final class MeasurementMathTests: XCTestCase {
         XCTAssertEqual(flat.maximum, 60, accuracy: 0.001)
     }
 
+    // MARK: - Screen ruler
+
+    func testKnownPanelsUseTheirRealPixelDensity() {
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPhone15,2", screenScale: 3), 460)
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPhone14,6", screenScale: 2), 326)
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPhone14,4", screenScale: 3), 476)
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPhone10,2", screenScale: 3), 401)
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPhone10,3", screenScale: 3), 458)
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPad14,1", screenScale: 2), 326)
+    }
+
+    func testUnknownModelsFallBackFromTheScreenScale() {
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPhone99,1", screenScale: 3), 460)
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPhone99,1", screenScale: 2), 326)
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPhone99,1", screenScale: 1), 163)
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "iPad99,1", screenScale: 2), 264)
+        XCTAssertEqual(ScreenRulerMath.pixelsPerInch(modelIdentifier: "arm64", screenScale: 3), 460)
+    }
+
+    func testPointsMatchPhysicalInchesAndCentimeters() {
+        let pointsPerInch = ScreenRulerMath.pointsPerInch(pixelsPerInch: 460, screenScale: 3)
+        XCTAssertEqual(pointsPerInch ?? 0, 460.0 / 3.0, accuracy: 0.0001)
+        let points = pointsPerInch ?? 0
+        XCTAssertEqual(ScreenRulerMath.inches(points: points, pointsPerInch: points) ?? 0, 1, accuracy: 0.0001)
+        XCTAssertEqual(ScreenRulerMath.centimeters(points: points, pointsPerInch: points) ?? 0, 2.54, accuracy: 0.0001)
+        XCTAssertEqual(ScreenRulerMath.points(inches: 1, pointsPerInch: points) ?? 0, points, accuracy: 0.0001)
+        XCTAssertEqual(ScreenRulerMath.points(centimeters: 2.54, pointsPerInch: points) ?? 0, points, accuracy: 0.0001)
+        XCTAssertNil(ScreenRulerMath.pointsPerInch(pixelsPerInch: 460, screenScale: 0))
+        XCTAssertNil(ScreenRulerMath.inches(points: 10, pointsPerInch: 0))
+        XCTAssertNil(ScreenRulerMath.centimeters(points: .nan, pointsPerInch: points))
+    }
+
+    // MARK: - Protractor
+
+    func testTiltAndAngleBetweenOrientations() {
+        let flat = GravityVector(x: 0, y: 0, z: -1)
+        let edge = GravityVector(x: 0, y: -1, z: 0)
+        XCTAssertEqual(AngleMath.tiltFromFlatDegrees(gravity: flat) ?? -1, 0, accuracy: 0.001)
+        XCTAssertEqual(AngleMath.tiltFromFlatDegrees(gravity: edge) ?? -1, 90, accuracy: 0.001)
+        XCTAssertEqual(AngleMath.angleDegrees(between: flat, and: edge) ?? -1, 90, accuracy: 0.001)
+        XCTAssertEqual(AngleMath.angleDegrees(between: flat, and: flat) ?? -1, 0, accuracy: 0.001)
+        XCTAssertNil(AngleMath.tiltFromFlatDegrees(gravity: GravityVector(x: 0, y: 0, z: 0)))
+
+        let identity = UnitQuaternion.identity
+        XCTAssertEqual(identity.rotationDegrees ?? -1, 0, accuracy: 0.001)
+        let half = (2.0).squareRoot() / 2
+        let quarterTurn = UnitQuaternion(x: 0, y: 0, z: half, w: half)
+        XCTAssertEqual(identity.angleDegrees(to: quarterTurn) ?? -1, 90, accuracy: 0.001)
+        XCTAssertEqual(quarterTurn.angleDegrees(to: identity) ?? -1, 90, accuracy: 0.001)
+        let sameRotation = UnitQuaternion(x: 0, y: 0, z: -half, w: -half)
+        XCTAssertEqual(quarterTurn.angleDegrees(to: sameRotation) ?? -1, 0, accuracy: 0.001)
+        XCTAssertNil(UnitQuaternion(x: 0, y: 0, z: 0, w: 0).rotationDegrees)
+    }
+
+    // MARK: - Barometer
+
+    func testStandardPressureIsSeaLevel() {
+        let altitude = BarometricMath.altitudeMeters(pressureHectopascals: BarometricMath.seaLevelPressureHectopascals)
+        XCTAssertEqual(altitude ?? -1, 0, accuracy: 0.0001)
+    }
+
+    func testBarometricAltitudeRoundTripsAndKnownPressures() {
+        let pressure = BarometricMath.pressureHectopascals(atAltitudeMeters: 1000)
+        XCTAssertEqual(pressure ?? 0, 898.7476, accuracy: 0.001)
+        XCTAssertEqual(BarometricMath.altitudeMeters(pressureHectopascals: pressure ?? 0) ?? 0, 1000, accuracy: 0.001)
+        XCTAssertEqual(BarometricMath.altitudeMeters(pressureHectopascals: 900) ?? 0, 988.518, accuracy: 0.01)
+        XCTAssertEqual(
+            BarometricMath.relativeAltitudeMeters(pressureHectopascals: 1000, referenceHectopascals: 1013.25) ?? 0,
+            110.886,
+            accuracy: 0.01
+        )
+    }
+
+    func testBarometerRejectsInvalidPressure() {
+        XCTAssertNil(BarometricMath.altitudeMeters(pressureHectopascals: 0))
+        XCTAssertNil(BarometricMath.altitudeMeters(pressureHectopascals: -5))
+        XCTAssertNil(BarometricMath.altitudeMeters(pressureHectopascals: .nan))
+        XCTAssertNil(BarometricMath.pressureHectopascals(atAltitudeMeters: 50_000))
+        XCTAssertNil(BarometricMath.hectopascals(fromKilopascals: .infinity))
+        XCTAssertEqual(BarometricMath.hectopascals(fromKilopascals: 101.325) ?? 0, 1013.25, accuracy: 0.0001)
+    }
+
+    // MARK: - Speed
+
+    func testSpeedConversionAndInvalidFixes() {
+        XCTAssertEqual(SpeedMath.convert(metersPerSecond: 10, to: .kilometersPerHour) ?? 0, 36, accuracy: 0.0001)
+        XCTAssertEqual(
+            SpeedMath.convert(metersPerSecond: 10, to: .milesPerHour) ?? 0,
+            10 * 3600 / 1609.344,
+            accuracy: 0.0000001
+        )
+        XCTAssertEqual(SpeedMath.convert(metersPerSecond: 10, to: .metersPerSecond) ?? 0, 10, accuracy: 0.0001)
+        XCTAssertEqual(SpeedMath.convert(metersPerSecond: 0, to: .kilometersPerHour) ?? -1, 0, accuracy: 0.0001)
+        XCTAssertNil(SpeedMath.convert(metersPerSecond: -1, to: .kilometersPerHour))
+        XCTAssertFalse(SpeedMath.isValid(metersPerSecond: .nan))
+        XCTAssertTrue(SpeedMath.isValid(metersPerSecond: 0))
+    }
+
+    // MARK: - Lux
+
+    func testLuxEstimateFromExposure() {
+        XCTAssertEqual(LuxMath.approximateLux(aperture: 2, exposureSeconds: 0.01, iso: 100) ?? 0, 1000, accuracy: 0.001)
+        XCTAssertEqual(LuxMath.approximateLux(aperture: 4, exposureSeconds: 1.0 / 60, iso: 200) ?? 0, 1200, accuracy: 0.001)
+        XCTAssertNil(LuxMath.approximateLux(aperture: 0, exposureSeconds: 0.01, iso: 100))
+        XCTAssertNil(LuxMath.approximateLux(aperture: 2, exposureSeconds: 0, iso: 100))
+        XCTAssertNil(LuxMath.approximateLux(aperture: 2, exposureSeconds: 0.01, iso: -10))
+        XCTAssertNil(LuxMath.approximateLux(aperture: .infinity, exposureSeconds: 0.01, iso: 100))
+    }
+
+    func testMagneticSpikeAndAccelerationMagnitude() {
+        XCTAssertEqual(MagneticMath.magnitudeMicrotesla(x: 3, y: 4, z: 0) ?? 0, 5, accuracy: 0.0001)
+        XCTAssertTrue(MagneticMath.isSpike(from: 40, to: 56))
+        XCTAssertFalse(MagneticMath.isSpike(from: 40, to: 50))
+        XCTAssertFalse(MagneticMath.isSpike(from: nil, to: 80))
+        XCTAssertNil(MagneticMath.magnitudeMicrotesla(x: .nan, y: 0, z: 0))
+        XCTAssertEqual(AccelerationMath.magnitude(x: 0, y: 3, z: 4) ?? 0, 5, accuracy: 0.0001)
+    }
+
+    // MARK: - AR measure
+
+    func testARDistanceAndRectangleArea() {
+        let origin = WorldPoint(x: 0, y: 0, z: 0)
+        XCTAssertEqual(MeasureMath.distanceMeters(origin, WorldPoint(x: 3, y: 4, z: 0)) ?? 0, 5, accuracy: 0.0001)
+
+        let rectangle = MeasureMath.rectangle(
+            origin: origin,
+            alongWidth: WorldPoint(x: 2, y: 0, z: 0),
+            third: WorldPoint(x: 0, y: 3, z: 0)
+        )
+        XCTAssertEqual(rectangle?.widthMeters ?? 0, 2, accuracy: 0.0001)
+        XCTAssertEqual(rectangle?.heightMeters ?? 0, 3, accuracy: 0.0001)
+        XCTAssertEqual(rectangle?.areaSquareMeters ?? 0, 6, accuracy: 0.0001)
+        XCTAssertEqual(rectangle?.corners.count, 4)
+
+        let skewed = MeasureMath.rectangle(
+            origin: origin,
+            alongWidth: WorldPoint(x: 4, y: 0, z: 0),
+            third: WorldPoint(x: 1, y: 3, z: 0)
+        )
+        XCTAssertEqual(skewed?.widthMeters ?? 0, 4, accuracy: 0.0001)
+        XCTAssertEqual(skewed?.heightMeters ?? 0, 3, accuracy: 0.0001)
+        XCTAssertEqual(skewed?.areaSquareMeters ?? 0, 12, accuracy: 0.0001)
+        XCTAssertNil(MeasureMath.rectangle(origin: origin, alongWidth: origin, third: WorldPoint(x: 0, y: 1, z: 0)))
+        XCTAssertNil(MeasureMath.distanceMeters(origin, WorldPoint(x: .nan, y: 0, z: 0)))
+    }
+
+    func testARUnitConversions() {
+        XCTAssertEqual(MeasureDisplayUnit.centimeters.length(fromMeters: 1.5) ?? 0, 150, accuracy: 0.0001)
+        XCTAssertEqual(MeasureDisplayUnit.meters.length(fromMeters: 1.5) ?? 0, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(MeasureDisplayUnit.inches.length(fromMeters: 0.0254) ?? 0, 1, accuracy: 0.0001)
+        XCTAssertEqual(MeasureDisplayUnit.feet.length(fromMeters: 0.3048) ?? 0, 1, accuracy: 0.0001)
+        XCTAssertEqual(MeasureDisplayUnit.centimeters.area(fromSquareMeters: 1) ?? 0, 10_000, accuracy: 0.0001)
+        XCTAssertEqual(MeasureDisplayUnit.meters.area(fromSquareMeters: 2) ?? 0, 2, accuracy: 0.0001)
+        XCTAssertEqual(MeasureDisplayUnit.feet.area(fromSquareMeters: 0.3048 * 0.3048) ?? 0, 1, accuracy: 0.0001)
+        XCTAssertNil(MeasureDisplayUnit.meters.length(fromMeters: .nan))
+    }
+
     // MARK: - Helpers
 
     private func qibla(latitude: Double, longitude: Double) -> Qibla {

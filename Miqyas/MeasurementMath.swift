@@ -1,8 +1,8 @@
 import Foundation
 
 // Pure measurement math. No sensors, UI, or localization, so unit tests can
-// cover the Qibla formula, the level angles, and the sound-level conversion
-// without hardware.
+// cover the Qibla formula, the level angles, the sound-level conversion, and
+// the ruler, angle, barometer, speed, light, and AR conversions without hardware.
 
 // MARK: - Angles
 
@@ -444,5 +444,387 @@ nonisolated struct SoundAggregate: Equatable, Sendable {
 
     private static func power(of decibels: Double) -> Double {
         pow(10, decibels / 10)
+    }
+}
+
+// MARK: - Screen ruler
+
+nonisolated enum ScreenRulerMath {
+    /// International inch, in centimeters.
+    static let centimetersPerInch = 2.54
+
+    /// Physical pixels per inch for panels that are not the scale-based fallback.
+    /// Unknown iPhones use 163 / 326 / 460 for @1x / @2x / @3x. Unknown iPads use 264.
+    static func pixelsPerInch(modelIdentifier: String, screenScale: Double) -> Double {
+        if let known = knownPixelsPerInch[modelIdentifier] {
+            return known
+        }
+        if modelIdentifier.hasPrefix("iPad") {
+            return 264
+        }
+        let scale = screenScale.isFinite && screenScale > 0 ? screenScale : 3
+        if scale < 1.5 { return 163 }
+        if scale < 2.5 { return 326 }
+        return 460
+    }
+
+    /// Points per inch. `screenScale` is the screen's native pixel scale, so a
+    /// rendered point matches a physical inch on that panel.
+    static func pointsPerInch(pixelsPerInch: Double, screenScale: Double) -> Double? {
+        guard pixelsPerInch.isFinite, screenScale.isFinite, pixelsPerInch > 0, screenScale > 0 else { return nil }
+        return pixelsPerInch / screenScale
+    }
+
+    static func inches(points: Double, pointsPerInch: Double) -> Double? {
+        guard points.isFinite, pointsPerInch.isFinite, pointsPerInch > 0 else { return nil }
+        return points / pointsPerInch
+    }
+
+    static func centimeters(points: Double, pointsPerInch: Double) -> Double? {
+        guard let inches = inches(points: points, pointsPerInch: pointsPerInch) else { return nil }
+        return inches * centimetersPerInch
+    }
+
+    static func points(inches: Double, pointsPerInch: Double) -> Double? {
+        guard inches.isFinite, pointsPerInch.isFinite, pointsPerInch > 0 else { return nil }
+        return inches * pointsPerInch
+    }
+
+    static func points(centimeters: Double, pointsPerInch: Double) -> Double? {
+        guard centimeters.isFinite else { return nil }
+        return points(inches: centimeters / centimetersPerInch, pointsPerInch: pointsPerInch)
+    }
+
+    private static let knownPixelsPerInch: [String: Double] = {
+        var map: [String: Double] = [:]
+        func add(_ ppi: Double, _ identifiers: [String]) {
+            for identifier in identifiers {
+                map[identifier] = ppi
+            }
+        }
+        add(163, [
+            "iPhone1,1", "iPhone1,2", "iPhone2,1",
+            "iPad2,5", "iPad2,6", "iPad2,7"
+        ])
+        add(326, [
+            "iPhone3,1", "iPhone3,2", "iPhone3,3", "iPhone4,1",
+            "iPhone5,1", "iPhone5,2", "iPhone5,3", "iPhone5,4",
+            "iPhone6,1", "iPhone6,2", "iPhone7,2", "iPhone8,1", "iPhone8,4",
+            "iPhone9,1", "iPhone9,3", "iPhone10,1", "iPhone10,4",
+            "iPhone11,8", "iPhone12,1", "iPhone12,8", "iPhone14,6",
+            "iPad4,4", "iPad4,5", "iPad4,6", "iPad4,7", "iPad4,8", "iPad4,9",
+            "iPad5,1", "iPad5,2", "iPad11,1", "iPad11,2",
+            "iPad14,1", "iPad14,2", "iPad16,1", "iPad16,2"
+        ])
+        add(401, [
+            "iPhone7,1", "iPhone8,2", "iPhone9,2", "iPhone9,4",
+            "iPhone10,2", "iPhone10,5"
+        ])
+        add(458, [
+            "iPhone10,3", "iPhone10,6", "iPhone11,2", "iPhone11,4", "iPhone11,6",
+            "iPhone12,3", "iPhone12,5", "iPhone13,4", "iPhone14,3", "iPhone14,8"
+        ])
+        add(476, ["iPhone13,1", "iPhone14,4"])
+        add(460, [
+            "iPhone13,2", "iPhone13,3", "iPhone14,2", "iPhone14,5", "iPhone14,7",
+            "iPhone15,2", "iPhone15,3", "iPhone15,4", "iPhone15,5",
+            "iPhone16,1", "iPhone16,2",
+            "iPhone17,1", "iPhone17,2", "iPhone17,3", "iPhone17,4", "iPhone17,5",
+            "iPhone18,1", "iPhone18,2", "iPhone18,3", "iPhone18,4", "iPhone18,5",
+            "iPhone19,2", "iPhone19,3", "iPhone19,7"
+        ])
+        return map
+    }()
+}
+
+// MARK: - Protractor
+
+nonisolated struct UnitQuaternion: Equatable, Sendable {
+    var x: Double
+    var y: Double
+    var z: Double
+    var w: Double
+
+    static let identity = UnitQuaternion(x: 0, y: 0, z: 0, w: 1)
+
+    var magnitude: Double {
+        (x * x + y * y + z * z + w * w).squareRoot()
+    }
+
+    func normalized() -> UnitQuaternion? {
+        let length = magnitude
+        guard length.isFinite, length > 1e-8 else { return nil }
+        return UnitQuaternion(x: x / length, y: y / length, z: z / length, w: w / length)
+    }
+
+    func inverse() -> UnitQuaternion? {
+        guard let unit = normalized() else { return nil }
+        return UnitQuaternion(x: -unit.x, y: -unit.y, z: -unit.z, w: unit.w)
+    }
+
+    func multiplied(by rhs: UnitQuaternion) -> UnitQuaternion {
+        UnitQuaternion(
+            x: w * rhs.x + x * rhs.w + y * rhs.z - z * rhs.y,
+            y: w * rhs.y - x * rhs.z + y * rhs.w + z * rhs.x,
+            z: w * rhs.z + x * rhs.y - y * rhs.x + z * rhs.w,
+            w: w * rhs.w - x * rhs.x - y * rhs.y - z * rhs.z
+        )
+    }
+
+    /// Smallest rotation this quaternion represents, in degrees, from 0 to 180.
+    /// Opposite quaternions are the same rotation, so the sign of `w` is ignored.
+    var rotationDegrees: Double? {
+        guard let unit = normalized() else { return nil }
+        let cosineHalf = min(1, max(-1, abs(unit.w)))
+        return 2 * acos(cosineHalf) * 180 / .pi
+    }
+
+    /// Angle required to turn `self` onto `other`, in degrees, from 0 to 180.
+    func angleDegrees(to other: UnitQuaternion) -> Double? {
+        guard let inverse else { return nil }
+        return other.multiplied(by: inverse).rotationDegrees
+    }
+}
+
+nonisolated enum AngleMath {
+    /// Tilt away from a flat, screen-up pose. Zero is flat and 90 is on edge.
+    static func tiltFromFlatDegrees(gravity: GravityVector) -> Double? {
+        guard gravity.normalized() != nil else { return nil }
+        let tilt = LevelMath.surfaceTiltDegrees(x: gravity.x, y: gravity.y, z: gravity.z)
+        guard tilt.isFinite else { return nil }
+        return tilt
+    }
+
+    /// Angle between two device orientations, using gravity only, from 0 to 180.
+    static func angleDegrees(between first: GravityVector, and second: GravityVector) -> Double? {
+        guard let left = first.normalized(), let right = second.normalized() else { return nil }
+        let cosine = min(1, max(-1, GravityVector.dot(left, right)))
+        let degrees = acos(cosine) * 180 / .pi
+        guard degrees.isFinite else { return nil }
+        return degrees
+    }
+}
+
+// MARK: - Barometer
+
+/// International Standard Atmosphere troposphere (0–11 km).
+/// Height is approximate: the phone does not know the real sea-level pressure or temperature.
+nonisolated enum BarometricMath {
+    static let gasConstant = 8.314462618
+    static let molarMass = 0.0289644
+    static let gravity = 9.80665
+    static let seaLevelTemperatureKelvin = 288.15
+    static let lapseRateKelvinPerMeter = 0.0065
+    static let seaLevelPressureHectopascals = 1013.25
+
+    static func hectopascals(fromKilopascals kilopascals: Double) -> Double? {
+        guard kilopascals.isFinite else { return nil }
+        return kilopascals * 10
+    }
+
+    /// Meters above the standard sea-level pressure. Negative means below that level.
+    static func altitudeMeters(
+        pressureHectopascals pressure: Double,
+        seaLevelHectopascals seaLevel: Double = seaLevelPressureHectopascals
+    ) -> Double? {
+        guard pressure.isFinite, seaLevel.isFinite, pressure > 0, seaLevel > 0 else { return nil }
+        let powered = pow(pressure / seaLevel, troposphereExponent)
+        guard powered.isFinite else { return nil }
+        let altitude = (seaLevelTemperatureKelvin / lapseRateKelvinPerMeter) * (1 - powered)
+        guard altitude.isFinite else { return nil }
+        return altitude
+    }
+
+    static func pressureHectopascals(
+        atAltitudeMeters altitude: Double,
+        seaLevelHectopascals seaLevel: Double = seaLevelPressureHectopascals
+    ) -> Double? {
+        guard altitude.isFinite, seaLevel.isFinite, seaLevel > 0 else { return nil }
+        let scaled = lapseRateKelvinPerMeter * altitude / seaLevelTemperatureKelvin
+        guard scaled < 1 else { return nil }
+        let pressure = seaLevel * pow(1 - scaled, 1 / troposphereExponent)
+        guard pressure.isFinite, pressure > 0 else { return nil }
+        return pressure
+    }
+
+    static func relativeAltitudeMeters(
+        pressureHectopascals pressure: Double,
+        referenceHectopascals reference: Double
+    ) -> Double? {
+        guard let current = altitudeMeters(pressureHectopascals: pressure),
+              let baseline = altitudeMeters(pressureHectopascals: reference) else { return nil }
+        return current - baseline
+    }
+
+    private static var troposphereExponent: Double {
+        (gasConstant * lapseRateKelvinPerMeter) / (gravity * molarMass)
+    }
+}
+
+// MARK: - Speed
+
+nonisolated enum SpeedUnit: String, CaseIterable, Equatable, Sendable {
+    case metersPerSecond
+    case kilometersPerHour
+    case milesPerHour
+}
+
+nonisolated enum SpeedMath {
+    /// Core Location reports a negative speed when the fix is not valid yet.
+    static func isValid(metersPerSecond: Double) -> Bool {
+        metersPerSecond.isFinite && metersPerSecond >= 0
+    }
+
+    static func convert(metersPerSecond: Double, to unit: SpeedUnit) -> Double? {
+        guard isValid(metersPerSecond: metersPerSecond) else { return nil }
+        switch unit {
+        case .metersPerSecond:
+            return metersPerSecond
+        case .kilometersPerHour:
+            return metersPerSecond * 3.6
+        case .milesPerHour:
+            return metersPerSecond * (3600 / 1609.344)
+        }
+    }
+}
+
+// MARK: - Light
+
+nonisolated enum LuxMath {
+    /// Maps a camera exposure to approximate lux.
+    /// At ISO 100, EV = log2(N² / t) and lux ≈ 2.5 · 2^EV, which simplifies to
+    /// 250 · N² / (t · ISO). A phone camera is not a calibrated illuminance meter.
+    static let calibrationConstant = 250.0
+
+    static func approximateLux(aperture: Double, exposureSeconds: Double, iso: Double) -> Double? {
+        guard aperture.isFinite, exposureSeconds.isFinite, iso.isFinite,
+              aperture > 0, exposureSeconds > 0, iso > 0 else { return nil }
+        let lux = calibrationConstant * aperture * aperture / (exposureSeconds * iso)
+        guard lux.isFinite, lux >= 0 else { return nil }
+        return lux
+    }
+}
+
+// MARK: - Magnetic field and vibration
+
+nonisolated enum MagneticMath {
+    /// A jump of this size, in microteslas, counts as a nearby piece of metal.
+    static let spikeThresholdMicrotesla = 15.0
+
+    static func magnitudeMicrotesla(x: Double, y: Double, z: Double) -> Double? {
+        guard x.isFinite, y.isFinite, z.isFinite else { return nil }
+        return (x * x + y * y + z * z).squareRoot()
+    }
+
+    static func isSpike(
+        from previous: Double?,
+        to current: Double,
+        threshold: Double = spikeThresholdMicrotesla
+    ) -> Bool {
+        guard let previous, previous.isFinite, current.isFinite, threshold.isFinite, threshold > 0 else { return false }
+        return abs(current - previous) >= threshold
+    }
+}
+
+nonisolated enum AccelerationMath {
+    static func magnitude(x: Double, y: Double, z: Double) -> Double? {
+        guard x.isFinite, y.isFinite, z.isFinite else { return nil }
+        return (x * x + y * y + z * z).squareRoot()
+    }
+}
+
+// MARK: - AR distance and area
+
+nonisolated struct WorldPoint: Equatable, Sendable {
+    var x: Double
+    var y: Double
+    var z: Double
+
+    var length: Double {
+        (x * x + y * y + z * z).squareRoot()
+    }
+
+    func distance(to other: WorldPoint) -> Double {
+        (self - other).length
+    }
+
+    static func dot(_ lhs: WorldPoint, _ rhs: WorldPoint) -> Double {
+        lhs.x * rhs.x + lhs.y * rhs.y + lhs.z * rhs.z
+    }
+
+    static func - (lhs: WorldPoint, rhs: WorldPoint) -> WorldPoint {
+        WorldPoint(x: lhs.x - rhs.x, y: lhs.y - rhs.y, z: lhs.z - rhs.z)
+    }
+
+    static func + (lhs: WorldPoint, rhs: WorldPoint) -> WorldPoint {
+        WorldPoint(x: lhs.x + rhs.x, y: lhs.y + rhs.y, z: lhs.z + rhs.z)
+    }
+
+    static func * (lhs: WorldPoint, scale: Double) -> WorldPoint {
+        WorldPoint(x: lhs.x * scale, y: lhs.y * scale, z: lhs.z * scale)
+    }
+}
+
+nonisolated struct RectangleMeasure: Equatable, Sendable {
+    var widthMeters: Double
+    var heightMeters: Double
+    var areaSquareMeters: Double
+    /// Origin, far end of the width, opposite corner, far end of the height.
+    var corners: [WorldPoint]
+}
+
+nonisolated enum MeasureDisplayUnit: String, CaseIterable, Equatable, Sendable {
+    case centimeters
+    case meters
+    case inches
+    case feet
+
+    var metersFactor: Double {
+        switch self {
+        case .centimeters: return 100
+        case .meters: return 1
+        case .inches: return 1 / 0.0254
+        case .feet: return 1 / 0.3048
+        }
+    }
+
+    func length(fromMeters meters: Double) -> Double? {
+        guard meters.isFinite else { return nil }
+        return meters * metersFactor
+    }
+
+    func area(fromSquareMeters squareMeters: Double) -> Double? {
+        guard squareMeters.isFinite else { return nil }
+        return squareMeters * metersFactor * metersFactor
+    }
+}
+
+nonisolated enum MeasureMath {
+    static func distanceMeters(_ start: WorldPoint, _ end: WorldPoint) -> Double? {
+        let distance = start.distance(to: end)
+        guard distance.isFinite else { return nil }
+        return distance
+    }
+
+    /// Rectangle spanned by the first edge and the component of the third point
+    /// that is perpendicular to that edge. The area is width times that height.
+    static func rectangle(origin: WorldPoint, alongWidth: WorldPoint, third: WorldPoint) -> RectangleMeasure? {
+        let widthVector = alongWidth - origin
+        let width = widthVector.length
+        guard width.isFinite, width > 0.001 else { return nil }
+        let toThird = third - origin
+        let parallel = WorldPoint.dot(toThird, widthVector) / (width * width)
+        guard parallel.isFinite else { return nil }
+        let perpendicular = toThird - (widthVector * parallel)
+        let height = perpendicular.length
+        guard height.isFinite, height > 0.001 else { return nil }
+        let area = width * height
+        guard area.isFinite else { return nil }
+        return RectangleMeasure(
+            widthMeters: width,
+            heightMeters: height,
+            areaSquareMeters: area,
+            corners: [origin, alongWidth, origin + widthVector + perpendicular, origin + perpendicular]
+        )
     }
 }
