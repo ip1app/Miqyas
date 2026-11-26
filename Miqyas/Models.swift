@@ -181,6 +181,12 @@ struct L10n {
     var tabTools: String { lang == .arabic ? "أدوات القياس" : "Measuring Tools" }
     var toolsHeadline: String { lang == .arabic ? "أدوات القياس" : "Measuring Tools" }
     var toolsSubtitle: String { lang == .arabic ? "مسطرة، زاوية، ارتفاع، خطوات، والمزيد" : "Ruler, angle, altitude, steps, and more" }
+    var toolsSearchPlaceholder: String { lang == .arabic ? "ابحث عن أداة..." : "Search tools..." }
+    var toolsNoSearchResults: String { lang == .arabic ? "لا توجد أدوات مطابقة للبحث" : "No matching tools" }
+    var toolsEmptyFavoritesTitle: String { lang == .arabic ? "لا توجد أدوات مفضلة" : "No Favorite Tools" }
+    var toolsEmptyFavoritesMsg: String { lang == .arabic ? "افتح أي أداة واضغط النجمة ⭐ لإضافتها هنا." : "Open a tool and tap the star to add it here." }
+    var favoriteTool: String { lang == .arabic ? "إضافة إلى المفضلة" : "Add to Favorites" }
+    var unfavoriteTool: String { lang == .arabic ? "إزالة من المفضلة" : "Remove from Favorites" }
 
     var toolLevelTitle: String { lang == .arabic ? "ميزان استواء" : "Level" }
     var toolLevelSubtitle: String { lang == .arabic ? "فقاعة وزاوية" : "Bubble and angle" }

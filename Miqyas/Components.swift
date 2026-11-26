@@ -288,6 +288,127 @@ struct NeonAmbientBackground: View {
     }
 }
 
+// MARK: - Shared catalog search and filters
+
+/// The home search field. The tools page uses the same field with its own placeholder.
+struct CatalogSearchField: View {
+    @Binding var text: String
+    let placeholder: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(.blue)
+
+            TextField(placeholder, text: $text)
+                .font(.system(size: 15, weight: .medium, design: .rounded))
+                .autocorrectionDisabled()
+
+            if !text.isEmpty {
+                Button {
+                    text = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(
+            RoundedRectangle(cornerRadius: 20)
+                .fill(.ultraThinMaterial)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.5), Color.blue.opacity(0.2)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+        )
+        .shadow(color: Color.black.opacity(0.04), radius: 10, y: 4)
+    }
+}
+
+/// All / Popular / Favorites chips, with the layout-edit button when the caller allows editing.
+struct CatalogFilterChips: View {
+    let options: [String]
+    @Binding var selectedIndex: Int
+    var showsEditButton: Bool
+    var editLabel: String
+    var onSelect: () -> Void
+    var onEdit: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            ForEach(options.indices, id: \.self) { index in
+                let label = options[index]
+                let isSelected = selectedIndex == index
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedIndex = index
+                    }
+                    onSelect()
+                } label: {
+                    Text(label)
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                        .foregroundColor(isSelected ? .white : .primary)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 9)
+                        .background(
+                            ZStack {
+                                if isSelected {
+                                    LinearGradient(
+                                        colors: [Color.blue, Color.cyan],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                } else {
+                                    Color.clear
+                                }
+                            }
+                        )
+                        .background(.ultraThinMaterial)
+                        .clipShape(Capsule())
+                        .overlay(
+                            Capsule()
+                                .stroke(
+                                    isSelected ? Color.cyan.opacity(0.4) : Color.white.opacity(0.3),
+                                    lineWidth: 1
+                                )
+                        )
+                        .shadow(color: isSelected ? Color.blue.opacity(0.35) : Color.black.opacity(0.03), radius: 6, y: 3)
+                }
+            }
+            Spacer()
+
+            if showsEditButton {
+                Button(action: onEdit) {
+                    Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.blue)
+                        .frame(width: 34, height: 34)
+                        .background(.ultraThinMaterial)
+                        .clipShape(Circle())
+                        .overlay(
+                            Circle()
+                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
+                        )
+                        .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
+                }
+                .accessibilityLabel(editLabel)
+                .transition(.scale.combined(with: .opacity))
+            }
+        }
+    }
+}
+
 // MARK: - Category Card Content (shared visuals)
 
 struct CategoryCardContent: View {

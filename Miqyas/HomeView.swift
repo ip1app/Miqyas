@@ -262,108 +262,18 @@ struct HomeView: View {
     }
 
     private var searchBar: some View {
-        HStack(spacing: 12) {
-            Image(systemName: "magnifyingglass")
-                .font(.system(size: 16, weight: .semibold))
-                .foregroundColor(.blue)
-
-            TextField(settings.l10n.searchPlaceholder, text: $searchText)
-                .font(.system(size: 15, weight: .medium, design: .rounded))
-                .autocorrectionDisabled()
-
-            if !searchText.isEmpty {
-                Button {
-                    searchText = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                }
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(
-                    LinearGradient(
-                        colors: [Color.white.opacity(0.5), Color.blue.opacity(0.2)],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1
-                )
-        )
-        .shadow(color: Color.black.opacity(0.04), radius: 10, y: 4)
+        CatalogSearchField(text: $searchText, placeholder: settings.l10n.searchPlaceholder)
     }
 
     private var filterChipsView: some View {
-        HStack(spacing: 10) {
-            ForEach(filterOptions.indices, id: \.self) { index in
-                let label = filterOptions[index]
-                let isSelected = selectedFilterIndex == index
-                Button {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                        selectedFilterIndex = index
-                    }
-                    settings.triggerFeedback()
-                } label: {
-                    Text(label)
-                        .font(.system(size: 14, weight: .bold, design: .rounded))
-                        .foregroundColor(isSelected ? .white : .primary)
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 9)
-                        .background(
-                            ZStack {
-                                if isSelected {
-                                    LinearGradient(
-                                        colors: [Color.blue, Color.cyan],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                } else {
-                                    Color.clear
-                                }
-                            }
-                        )
-                        .background(.ultraThinMaterial)
-                        .clipShape(Capsule())
-                        .overlay(
-                            Capsule()
-                                .stroke(
-                                    isSelected ? Color.cyan.opacity(0.4) : Color.white.opacity(0.3),
-                                    lineWidth: 1
-                                )
-                        )
-                        .shadow(color: isSelected ? Color.blue.opacity(0.35) : Color.black.opacity(0.03), radius: 6, y: 3)
-                }
-            }
-            Spacer()
-
-            if canEditLayout {
-                Button {
-                    enterEditMode()
-                } label: {
-                    Image(systemName: "slider.horizontal.3")
-                        .font(.system(size: 14, weight: .bold))
-                        .foregroundColor(.blue)
-                        .frame(width: 34, height: 34)
-                        .background(.ultraThinMaterial)
-                        .clipShape(Circle())
-                        .overlay(
-                            Circle()
-                                .stroke(Color.white.opacity(0.3), lineWidth: 1)
-                        )
-                        .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
-                }
-                .accessibilityLabel(settings.l10n.editCards)
-                .transition(.scale.combined(with: .opacity))
-            }
-        }
+        CatalogFilterChips(
+            options: filterOptions,
+            selectedIndex: $selectedFilterIndex,
+            showsEditButton: canEditLayout,
+            editLabel: settings.l10n.editCards,
+            onSelect: { settings.triggerFeedback() },
+            onEdit: { enterEditMode() }
+        )
     }
 
     private var favoritesQuickRow: some View {

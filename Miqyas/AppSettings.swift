@@ -40,6 +40,13 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// Favorite measuring tools. Separate from unit-category favorites.
+    @Published var measuringToolFavoriteIDs: [String] = [] {
+        didSet {
+            UserDefaults.standard.set(measuringToolFavoriteIDs, forKey: ToolFavorites.defaultsKey)
+        }
+    }
+
     @Published var hiddenCategoryIds: [String] = [] {
         didSet {
             UserDefaults.standard.set(hiddenCategoryIds, forKey: "home_hidden_categories")
@@ -264,6 +271,16 @@ final class AppSettings: ObservableObject {
     func resetMeasuringToolOrder() {
         toolOrder = MeasuringTool.allCases.map(\.rawValue)
         hiddenMeasuringToolIds.removeAll()
+        measuringToolFavoriteIDs.removeAll()
+        triggerFeedback()
+    }
+
+    func isMeasuringToolFavorite(_ id: String) -> Bool {
+        measuringToolFavoriteIDs.contains(id)
+    }
+
+    func toggleMeasuringToolFavorite(_ id: String) {
+        measuringToolFavoriteIDs = ToolFavorites.toggling(measuringToolFavoriteIDs, id: id)
         triggerFeedback()
     }
 
@@ -320,6 +337,12 @@ final class AppSettings: ObservableObject {
         }
         if let savedHiddenTools = UserDefaults.standard.stringArray(forKey: ToolOrder.hiddenDefaultsKey) {
             hiddenMeasuringToolIds = savedHiddenTools
+        }
+        if let savedToolFavorites = UserDefaults.standard.stringArray(forKey: ToolFavorites.defaultsKey) {
+            measuringToolFavoriteIDs = ToolFavorites.sanitized(
+                savedToolFavorites,
+                catalog: MeasuringTool.allCases.map(\.rawValue)
+            )
         }
 
         history = loadHistory()

@@ -109,11 +109,53 @@ struct MeasuringToolsView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var router: TabNavigationRouter
     @State private var path = NavigationPath()
+    @State private var searchText = ""
+    @State private var selectedFilterIndex = 0
     @State private var isEditingLayout = false
     @State private var draggingToolID: String?
     @State private var lastDropTargetId: String?
     @State private var showingResetOrder = false
     @State private var showCannotHideAlert = false
+
+    private var filterOptions: [String] {
+        [settings.l10n.filterAll, settings.l10n.filterPopular, settings.l10n.filterFavorites]
+    }
+
+    /// Reorder and hide stay on All, with the search field empty, the same as home.
+    private var canEditLayout: Bool {
+        selectedFilterIndex == ToolBrowse.Filter.all.rawValue
+            && searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private var favoriteTools: [MeasuringTool] {
+        settings.orderedMeasuringTools.filter { settings.isMeasuringToolFavorite($0.id) }
+    }
+
+    private var displayedTools: [MeasuringTool] {
+        if isEditingLayout {
+            return settings.orderedMeasuringTools
+        }
+        let names = Dictionary(uniqueKeysWithValues: MeasuringTool.allCases.map { tool in
+            (
+                tool.rawValue,
+                ToolBrowse.Name(
+                    arabicTitle: tool.title(using: L10n(lang: .arabic)),
+                    englishTitle: tool.title(using: L10n(lang: .english)),
+                    arabicSubtitle: tool.subtitle(using: L10n(lang: .arabic)),
+                    englishSubtitle: tool.subtitle(using: L10n(lang: .english))
+                )
+            )
+        })
+        let ids = ToolBrowse.matchingIDs(
+            orderedVisible: settings.orderedMeasuringTools.map(\.id),
+            filter: ToolBrowse.Filter(rawValue: selectedFilterIndex) ?? .all,
+            favorites: settings.measuringToolFavoriteIDs,
+            query: searchText,
+            names: names
+        )
+        let byID = Dictionary(uniqueKeysWithValues: MeasuringTool.allCases.map { ($0.rawValue, $0) })
+        return ids.compactMap { byID[$0] }
+    }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -125,7 +167,19 @@ struct MeasuringToolsView: View {
                     if isEditingLayout {
                         editModeBanner
                     } else {
-                        editButtonRow
+                        CatalogSearchField(text: $searchText, placeholder: settings.l10n.toolsSearchPlaceholder)
+                        CatalogFilterChips(
+                            options: filterOptions,
+                            selectedIndex: $selectedFilterIndex,
+                            showsEditButton: canEditLayout,
+                            editLabel: settings.l10n.editCards,
+                            onSelect: { settings.triggerFeedback() },
+                            onEdit: { enterEditMode() }
+                        )
+                    }
+
+                    if !isEditingLayout && selectedFilterIndex == 0 && searchText.isEmpty && !favoriteTools.isEmpty {
+                        favoritesQuickRow
                     }
 
                     if isEditingLayout && !settings.hiddenMeasuringTools.isEmpty {
@@ -149,11 +203,18 @@ struct MeasuringToolsView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: MeasuringTool.self) { tool in
                 toolDestination(tool)
+                    .toolFavoriteStar(tool.id)
             }
             .alert(settings.l10n.cannotHideAll, isPresented: $showCannotHideAlert) {
                 Button(settings.l10n.done, role: .cancel) { }
             } message: {
                 Text(settings.l10n.cannotHideAllMsg)
+            }
+            .onChange(of: selectedFilterIndex) { _, _ in
+                exitEditModeIfNeeded()
+            }
+            .onChange(of: searchText) { _, _ in
+                exitEditModeIfNeeded()
             }
         }
         .onChange(of: router.toolsPopToken) { _, _ in
@@ -229,23 +290,50 @@ struct MeasuringToolsView: View {
         .padding(.top, 8)
     }
 
-    private var editButtonRow: some View {
-        HStack {
-            Spacer()
-            Button {
-                enterEditMode()
-            } label: {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundColor(.blue)
-                    .frame(width: 34, height: 34)
-                    .background(.ultraThinMaterial)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
-                    .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
+    private var favoritesQuickRow: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Image(systemName: "star.fill")
+                    .foregroundColor(.yellow)
+                Text(settings.l10n.quickFavorites)
+                    .font(.headline)
+                Spacer()
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(settings.l10n.editCards)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(favoriteTools) { tool in
+                        Button {
+                            open(tool)
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: tool.icon)
+                                    .font(.subheadline)
+                                    .foregroundColor(.white)
+                                    .frame(width: 32, height: 32)
+                                    .background(
+                                        LinearGradient(
+                                            colors: tool.gradient,
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .clipShape(Circle())
+
+                                Text(tool.title(using: settings.l10n))
+                                    .font(.subheadline.bold())
+                                    .foregroundColor(.primary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 8)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(14)
+                            .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+            }
         }
     }
 
@@ -297,6 +385,16 @@ struct MeasuringToolsView: View {
     }
 
     private var toolGrid: some View {
+        Group {
+            if displayedTools.isEmpty {
+                toolsEmptyState
+            } else {
+                toolsGrid
+            }
+        }
+    }
+
+    private var toolsGrid: some View {
         LazyVGrid(
             columns: [
                 GridItem(.flexible(), spacing: 14),
@@ -304,7 +402,7 @@ struct MeasuringToolsView: View {
             ],
             spacing: 14
         ) {
-            ForEach(settings.orderedMeasuringTools) { tool in
+            ForEach(displayedTools) { tool in
                 if isEditingLayout {
                     ToolGridCard(
                         tool: tool,
@@ -355,6 +453,41 @@ struct MeasuringToolsView: View {
                 }
             }
         }
+    }
+
+    private var toolsEmptyState: some View {
+        let searching = !searchText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        let showingFavorites = selectedFilterIndex == ToolBrowse.Filter.favorites.rawValue && !searching
+        return VStack(spacing: 16) {
+            Image(systemName: showingFavorites ? "star.slash.fill" : "magnifyingglass")
+                .font(.system(size: 48))
+                .foregroundColor(.secondary.opacity(0.5))
+                .padding(.top, 40)
+
+            if showingFavorites {
+                Text(settings.l10n.toolsEmptyFavoritesTitle)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Text(settings.l10n.toolsEmptyFavoritesMsg)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            } else {
+                Text(settings.l10n.toolsNoSearchResults)
+                    .font(.headline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Button(settings.l10n.clearSearch) {
+                    searchText = ""
+                    selectedFilterIndex = ToolBrowse.Filter.all.rawValue
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.blue)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 40)
     }
 
     private var resetOrderButton: some View {
@@ -464,10 +597,16 @@ struct MeasuringToolsView: View {
     }
 
     private func enterEditMode() {
-        guard !isEditingLayout else { return }
+        guard canEditLayout, !isEditingLayout else { return }
         settings.triggerFeedback(impact: .medium)
         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
             isEditingLayout = true
+        }
+    }
+
+    private func exitEditModeIfNeeded() {
+        if isEditingLayout && !canEditLayout {
+            exitEditMode()
         }
     }
 
@@ -566,7 +705,8 @@ private struct ToolGridCard: View {
                 icon: tool.icon,
                 gradient: tool.gradient,
                 badge: tool.badge(using: settings.l10n),
-                arrowSystemName: settings.appLanguage.arrowIcon
+                arrowSystemName: settings.appLanguage.arrowIcon,
+                showsFavoriteStar: settings.isMeasuringToolFavorite(tool.id)
             )
         }
         .buttonStyle(ScaleCardButtonStyle())
@@ -865,6 +1005,37 @@ func currentInterfaceOrientation() -> UIInterfaceOrientation {
 func openAppSettings() {
     guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
     UIApplication.shared.open(url)
+}
+
+private struct ToolFavoriteStar: ViewModifier {
+    let toolID: String
+    @EnvironmentObject private var settings: AppSettings
+
+    func body(content: Content) -> some View {
+        content.toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                        settings.toggleMeasuringToolFavorite(toolID)
+                    }
+                } label: {
+                    Image(systemName: settings.isMeasuringToolFavorite(toolID) ? "star.fill" : "star")
+                        .font(.title3)
+                        .foregroundColor(settings.isMeasuringToolFavorite(toolID) ? .yellow : .primary)
+                        .scaleEffect(settings.isMeasuringToolFavorite(toolID) ? 1.15 : 1.0)
+                }
+                .accessibilityLabel(
+                    settings.isMeasuringToolFavorite(toolID) ? settings.l10n.unfavoriteTool : settings.l10n.favoriteTool
+                )
+            }
+        }
+    }
+}
+
+private extension View {
+    func toolFavoriteStar(_ toolID: String) -> some View {
+        modifier(ToolFavoriteStar(toolID: toolID))
+    }
 }
 
 #Preview {
