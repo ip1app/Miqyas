@@ -573,13 +573,15 @@ struct ScaleCardButtonStyle: ButtonStyle {
 
 enum AppTab: Int, CaseIterable {
     case home = 0
-    case favorites = 1
-    case history = 2
-    case settings = 3
+    case tools = 1
+    case favorites = 2
+    case history = 3
+    case settings = 4
 
     func title(using l10n: L10n) -> String {
         switch self {
         case .home: return l10n.tabHome
+        case .tools: return l10n.tabTools
         case .favorites: return l10n.tabFavorites
         case .history: return l10n.tabHistory
         case .settings: return l10n.tabSettings
@@ -589,6 +591,7 @@ enum AppTab: Int, CaseIterable {
     var icon: String {
         switch self {
         case .home: return "house.fill"
+        case .tools: return "wrench.and.screwdriver.fill"
         case .favorites: return "star.fill"
         case .history: return "clock.fill"
         case .settings: return "gearshape.fill"
@@ -656,6 +659,9 @@ struct DistinctiveFloatingTabBar: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(tab.title(using: settings.l10n))
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .accessibilityRemoveTraits(isSelected ? [] : .isSelected)
             }
         }
         .padding(.horizontal, 8)
