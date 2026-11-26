@@ -17,12 +17,13 @@ nonisolated enum ToolBrowse {
         var englishTitle: String
         var arabicSubtitle: String
         var englishSubtitle: String
+        var keywords: [String] = []
 
         func matches(_ query: String) -> Bool {
             let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return true }
-            return [arabicTitle, englishTitle, arabicSubtitle, englishSubtitle]
-                .contains { $0.localizedCaseInsensitiveContains(trimmed) }
+            let fields = [arabicTitle, englishTitle, arabicSubtitle, englishSubtitle] + keywords
+            return fields.contains { $0.localizedCaseInsensitiveContains(trimmed) }
         }
     }
 
@@ -88,5 +89,61 @@ nonisolated enum ToolFavorites {
 
     static func save(_ ids: [String], to defaults: UserDefaults) {
         defaults.set(ids, forKey: defaultsKey)
+    }
+}
+
+/// Camera-measure line appearance. Yellow and medium are the defaults.
+nonisolated enum MeasureLineColor: String, CaseIterable, Codable, Equatable, Sendable {
+    case yellow
+    case white
+    case red
+    case green
+    case blue
+}
+
+nonisolated enum MeasureLineThickness: String, CaseIterable, Codable, Equatable, Sendable {
+    case thin
+    case medium
+    case thick
+
+    /// Core tube width, in meters. The dark outline is drawn wider than this.
+    var widthMeters: Float {
+        switch self {
+        case .thin: return 0.008
+        case .medium: return 0.016
+        case .thick: return 0.028
+        }
+    }
+
+    var endpointRadiusMeters: Float {
+        switch self {
+        case .thin: return 0.014
+        case .medium: return 0.024
+        case .thick: return 0.036
+        }
+    }
+}
+
+nonisolated struct MeasureLineOptions: Equatable, Codable, Sendable {
+    var color: MeasureLineColor
+    var thickness: MeasureLineThickness
+
+    static let `default` = MeasureLineOptions(color: .yellow, thickness: .medium)
+    static let colorDefaultsKey = "ar_measure_line_color"
+    static let thicknessDefaultsKey = "ar_measure_line_thickness"
+
+    static func load(from defaults: UserDefaults) -> MeasureLineOptions {
+        let color = defaults.string(forKey: colorDefaultsKey).flatMap(MeasureLineColor.init(rawValue:)) ?? .yellow
+        let thickness = defaults.string(forKey: thicknessDefaultsKey).flatMap(MeasureLineThickness.init(rawValue:)) ?? .medium
+        return MeasureLineOptions(color: color, thickness: thickness)
+    }
+
+    static func save(_ options: MeasureLineOptions, to defaults: UserDefaults) {
+        defaults.set(options.color.rawValue, forKey: colorDefaultsKey)
+        defaults.set(options.thickness.rawValue, forKey: thicknessDefaultsKey)
+    }
+
+    static func reset(in defaults: UserDefaults) {
+        save(.default, to: defaults)
     }
 }

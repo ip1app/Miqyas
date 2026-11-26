@@ -125,4 +125,45 @@ final class ToolBrowseTests: XCTestCase {
         XCTAssertEqual(defaults.stringArray(forKey: ToolFavorites.defaultsKey), [])
         defaults.removePersistentDomain(forName: suite)
     }
+
+    func testCameraMeasureStillMatchesTheOldNames() {
+        let name = ToolBrowse.Name(
+            arabicTitle: "مقياس بالكاميرا",
+            englishTitle: "Camera Measure",
+            arabicSubtitle: "المسافة والمساحة",
+            englishSubtitle: "Distance and area",
+            keywords: ["AR", "الواقع المعزز", "measure", "قياس معزّز", "AR Measure"]
+        )
+        XCTAssertTrue(name.matches("كاميرا"))
+        XCTAssertTrue(name.matches("camera"))
+        XCTAssertTrue(name.matches("AR"))
+        XCTAssertTrue(name.matches("الواقع المعزز"))
+        XCTAssertTrue(name.matches("measure"))
+        XCTAssertTrue(name.matches("قياس معزّز"))
+        XCTAssertFalse(name.matches("بوصلة"))
+    }
+
+    func testMeasureLineOptionsDefaultLoadAndReset() {
+        let suite = "MeasureLineOptions.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+
+        XCTAssertEqual(MeasureLineOptions.load(from: defaults), .default)
+        XCTAssertEqual(MeasureLineOptions.default.color, .yellow)
+        XCTAssertEqual(MeasureLineOptions.default.thickness, .medium)
+
+        defaults.set("nope", forKey: MeasureLineOptions.colorDefaultsKey)
+        defaults.set("huge", forKey: MeasureLineOptions.thicknessDefaultsKey)
+        XCTAssertEqual(MeasureLineOptions.load(from: defaults), .default)
+
+        let chosen = MeasureLineOptions(color: .red, thickness: .thick)
+        MeasureLineOptions.save(chosen, to: defaults)
+        XCTAssertEqual(MeasureLineOptions.load(from: defaults), chosen)
+
+        MeasureLineOptions.reset(in: defaults)
+        XCTAssertEqual(MeasureLineOptions.load(from: defaults), .default)
+        XCTAssertEqual(defaults.string(forKey: MeasureLineOptions.colorDefaultsKey), MeasureLineColor.yellow.rawValue)
+        XCTAssertEqual(defaults.string(forKey: MeasureLineOptions.thicknessDefaultsKey), MeasureLineThickness.medium.rawValue)
+        defaults.removePersistentDomain(forName: suite)
+    }
 }

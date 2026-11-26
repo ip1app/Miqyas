@@ -92,6 +92,7 @@ struct ARMeasureToolView: View {
     @State private var unit: MeasureDisplayUnit = .centimeters
     @State private var points: [WorldPoint] = []
     @State private var missedSurface = false
+    @State private var showingLineOptions = false
 
     private var locale: Locale { Locale(identifier: settings.appLanguage.rawValue) }
 
@@ -130,6 +131,23 @@ struct ARMeasureToolView: View {
         .navigationTitle(settings.l10n.toolARTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.visible, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingLineOptions = true
+                } label: {
+                    Image(systemName: "lineweight")
+                        .font(.body.bold())
+                }
+                .accessibilityLabel(settings.l10n.arLineOptions)
+            }
+        }
+        .sheet(isPresented: $showingLineOptions) {
+            MeasureLineOptionsSheet()
+                .environmentObject(settings)
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
         .onAppear { model.start() }
         .onDisappear { model.stop() }
         .onChange(of: scenePhase) { _, phase in
@@ -149,6 +167,8 @@ struct ARMeasureToolView: View {
                 running: model.sessionRunning,
                 markers: points,
                 corners: rectangle?.corners ?? [],
+                label: measurementLabel,
+                lineOptions: settings.measureLineOptions,
                 onPoint: addPoint,
                 onMiss: { missedSurface = true }
             )
@@ -181,13 +201,13 @@ struct ARMeasureToolView: View {
             .pickerStyle(.segmented)
 
             if mode == .distance {
-                ToolValueReadout(
+                measurementLabelPlate(
                     value: distanceText,
                     unit: lengthUnit,
                     caption: settings.l10n.arDistanceMode
                 )
             } else {
-                ToolValueReadout(
+                measurementLabelPlate(
                     value: areaText,
                     unit: areaUnit,
                     caption: settings.l10n.arArea
@@ -234,6 +254,29 @@ struct ARMeasureToolView: View {
         default:
             return settings.l10n.arDone
         }
+    }
+
+    private var measurementLabel: String {
+        if mode == .distance {
+            guard distanceText != "—" else { return "" }
+            return distanceText + " " + lengthUnit
+        }
+        guard areaText != "—" else { return "" }
+        return areaText + " " + areaUnit
+    }
+
+    private func measurementLabelPlate(value: String, unit: String, caption: String) -> some View {
+        ToolValueReadout(value: value, unit: unit, caption: caption, tint: .yellow)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 8)
+            .background(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .fill(Color.black.opacity(0.82))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    .stroke(Color.white.opacity(0.35), lineWidth: 1)
+            )
     }
 
     private var distanceText: String {
@@ -314,12 +357,16 @@ struct ARMeasureToolView: View {
 private struct MeasureSnapshot: Equatable {
     var markers: [WorldPoint]
     var corners: [WorldPoint]
+    var label: String
+    var lineOptions: MeasureLineOptions
 }
 
 private struct MeasureCamera: UIViewRepresentable {
     var running: Bool
     var markers: [WorldPoint]
     var corners: [WorldPoint]
+    var label: String
+    var lineOptions: MeasureLineOptions
     var onPoint: (WorldPoint) -> Void
     var onMiss: () -> Void
 
@@ -345,7 +392,9 @@ private struct MeasureCamera: UIViewRepresentable {
     func updateUIView(_ uiView: ARView, context: Context) {
         context.coordinator.onPoint = onPoint
         context.coordinator.onMiss = onMiss
-        context.coordinator.render(MeasureSnapshot(markers: markers, corners: corners))
+        context.coordinator.render(
+            MeasureSnapshot(markers: markers, corners: corners, label: label, lineOptions: lineOptions)
+        )
         if running {
             context.coordinator.start()
         } else {
@@ -401,18 +450,24 @@ private struct MeasureCamera: UIViewRepresentable {
             }
             anchors.removeAll()
             let drawn = snapshot.corners.isEmpty ? snapshot.markers : snapshot.corners
-            let color = snapshot.corners.isEmpty ? UIColor.systemCyan : UIColor.systemGreen
+            let color = snapshot.lineOptions.color.uiColor
+            let width = snapshot.lineOptions.thickness.widthMeters
+            let radius = snapshot.lineOptions.thickness.endpointRadiusMeters
             for point in drawn {
-                anchors.append(makeSphere(at: point, color: color))
+                anchors.append(makeSphere(at: point, radius: radius, color: color))
             }
             if drawn.count >= 2 {
                 for index in 0..<(drawn.count - 1) {
-                    if let line = makeLine(from: drawn[index], to: drawn[index + 1], color: color) {
-                        anchors.append(line)
-                    }
+                    anchors.append(contentsOf: makeLine(from: drawn[index], to: drawn[index + 1], width: width, color: color))
                 }
-                if drawn.count >= 4, let closing = makeLine(from: drawn[3], to: drawn[0], color: color) {
-                    anchors.append(closing)
+                if drawn.count >= 4 {
+                    anchors.append(contentsOf: makeLine(from: drawn[3], to: drawn[0], width: width, color: color))
+                }
+            }
+            if !snapshot.label.isEmpty, let center = average(of: drawn) {
+                let camera = view.cameraTransform.translation
+                if let labelAnchor = makeLabel(snapshot.label, at: center, facing: camera, color: color) {
+                    anchors.append(labelAnchor)
                 }
             }
             for anchor in anchors {
@@ -420,27 +475,184 @@ private struct MeasureCamera: UIViewRepresentable {
             }
         }
 
-        private func makeSphere(at point: WorldPoint, color: UIColor) -> AnchorEntity {
-            let material = SimpleMaterial(color: color, roughness: 0.35, isMetallic: false)
-            let sphere = ModelEntity(mesh: .generateSphere(radius: 0.008), materials: [material])
+        private func makeSphere(at point: WorldPoint, radius: Float, color: UIColor) -> AnchorEntity {
+            let sphere = ModelEntity(
+                mesh: .generateSphere(radius: radius),
+                materials: [unlit(color)]
+            )
             let anchor = AnchorEntity(world: point.vector)
             anchor.addChild(sphere)
             return anchor
         }
 
-        private func makeLine(from start: WorldPoint, to end: WorldPoint, color: UIColor) -> AnchorEntity? {
+        /// A dark tube slightly wider than the colored core, so the line stays readable on any surface.
+        private func makeLine(from start: WorldPoint, to end: WorldPoint, width: Float, color: UIColor) -> [AnchorEntity] {
+            let outline = width * 1.85
+            return [
+                tube(from: start, to: end, width: outline, color: UIColor.black.withAlphaComponent(0.92)),
+                tube(from: start, to: end, width: width, color: color)
+            ].compactMap { $0 }
+        }
+
+        private func tube(from start: WorldPoint, to end: WorldPoint, width: Float, color: UIColor) -> AnchorEntity? {
             let delta = end.vector - start.vector
             let length = simd_length(delta)
             guard length > 0.001 else { return nil }
-            let material = SimpleMaterial(color: color, roughness: 0.4, isMetallic: false)
             let box = ModelEntity(
-                mesh: .generateBox(width: 0.004, height: 0.004, depth: length),
-                materials: [material]
+                mesh: .generateBox(width: width, height: width, depth: length),
+                materials: [unlit(color)]
             )
             box.orientation = simd_quatf(from: SIMD3<Float>(0, 0, 1), to: simd_normalize(delta))
             let anchor = AnchorEntity(world: (start.vector + end.vector) / 2)
             anchor.addChild(box)
             return anchor
+        }
+
+        private func makeLabel(_ text: String, at point: WorldPoint, facing camera: SIMD3<Float>, color: UIColor) -> AnchorEntity? {
+            let font = UIFont.systemFont(ofSize: 0.06, weight: .heavy)
+            guard let mesh = try? MeshResource.generateText(
+                text,
+                extrusionDepth: 0.002,
+                font: font,
+                containerFrame: .zero,
+                alignment: .center,
+                lineBreakMode: .byClipping
+            ) else { return nil }
+
+            let bounds = mesh.bounds
+            let textEntity = ModelEntity(mesh: mesh, materials: [unlit(color)])
+            textEntity.position = SIMD3(
+                -(bounds.center.x),
+                -(bounds.center.y),
+                0.006
+            )
+
+            let pad: Float = 0.016
+            let plate = ModelEntity(
+                mesh: .generateBox(
+                    width: max(bounds.extents.x + pad * 2, 0.08),
+                    height: max(bounds.extents.y + pad * 2, 0.045),
+                    depth: 0.004,
+                    cornerRadius: 0.01
+                ),
+                materials: [unlit(UIColor.black.withAlphaComponent(0.88))]
+            )
+            let anchor = AnchorEntity(world: point.vector)
+            let toCamera = camera - point.vector
+            if simd_length(toCamera) > 0.05 {
+                anchor.orientation = simd_quatf(from: SIMD3<Float>(0, 0, 1), to: simd_normalize(toCamera))
+            }
+            anchor.addChild(plate)
+            anchor.addChild(textEntity)
+            return anchor
+        }
+
+        private func unlit(_ color: UIColor) -> UnlitMaterial {
+            var material = UnlitMaterial()
+            material.color = .init(tint: color)
+            return material
+        }
+
+        private func average(of points: [WorldPoint]) -> WorldPoint? {
+            guard !points.isEmpty else { return nil }
+            let count = Double(points.count)
+            return WorldPoint(
+                x: points.reduce(0) { $0 + $1.x } / count,
+                y: points.reduce(0) { $0 + $1.y } / count,
+                z: points.reduce(0) { $0 + $1.z } / count
+            )
+        }
+    }
+}
+
+private struct MeasureLineOptionsSheet: View {
+    @EnvironmentObject private var settings: AppSettings
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 22) {
+                Text(settings.l10n.arLineColor)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 64), spacing: 12)], spacing: 12) {
+                    ForEach(MeasureLineColor.allCases, id: \.self) { color in
+                        Button {
+                            settings.measureLineOptions.color = color
+                            settings.triggerFeedback(impact: .light)
+                        } label: {
+                            VStack(spacing: 6) {
+                                Circle()
+                                    .fill(Color(uiColor: color.uiColor))
+                                    .frame(width: 36, height: 36)
+                                    .overlay(Circle().stroke(Color.black.opacity(0.45), lineWidth: 2))
+                                    .overlay {
+                                        if settings.measureLineOptions.color == color {
+                                            Image(systemName: "checkmark")
+                                                .font(.caption.bold())
+                                                .foregroundColor(color == .white || color == .yellow ? .black : .white)
+                                        }
+                                    }
+                                Text(color.title(using: settings.l10n))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundColor(.primary)
+                                    .lineLimit(1)
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(color.title(using: settings.l10n))
+                    }
+                }
+
+                Text(settings.l10n.arLineThickness)
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                Picker(settings.l10n.arLineThickness, selection: thicknessBinding) {
+                    Text(settings.l10n.arThicknessThin).tag(MeasureLineThickness.thin)
+                    Text(settings.l10n.arThicknessMedium).tag(MeasureLineThickness.medium)
+                    Text(settings.l10n.arThicknessThick).tag(MeasureLineThickness.thick)
+                }
+                .pickerStyle(.segmented)
+
+                Spacer()
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(NeonAmbientBackground())
+            .navigationTitle(settings.l10n.arLineOptions)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(settings.l10n.done) { dismiss() }
+                }
+            }
+        }
+    }
+
+    private var thicknessBinding: Binding<MeasureLineThickness> {
+        Binding(
+            get: { settings.measureLineOptions.thickness },
+            set: { settings.measureLineOptions.thickness = $0 }
+        )
+    }
+}
+
+private extension MeasureLineColor {
+    var uiColor: UIColor {
+        switch self {
+        case .yellow: return UIColor(red: 1, green: 0.92, blue: 0.05, alpha: 1)
+        case .white: return .white
+        case .red: return UIColor(red: 1, green: 0.16, blue: 0.16, alpha: 1)
+        case .green: return UIColor(red: 0.15, green: 0.95, blue: 0.3, alpha: 1)
+        case .blue: return UIColor(red: 0.2, green: 0.55, blue: 1, alpha: 1)
+        }
+    }
+
+    func title(using l10n: L10n) -> String {
+        switch self {
+        case .yellow: return l10n.arColorYellow
+        case .white: return l10n.arColorWhite
+        case .red: return l10n.arColorRed
+        case .green: return l10n.arColorGreen
+        case .blue: return l10n.arColorBlue
         }
     }
 }

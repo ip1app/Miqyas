@@ -70,6 +70,16 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         }
     }
 
+    /// Extra search words that are not the current title. The camera tool keeps its old names.
+    func searchKeywords() -> [String] {
+        switch self {
+        case .ar:
+            return ["AR", "الواقع المعزز", "measure", "قياس معزّز", "AR Measure"]
+        default:
+            return []
+        }
+    }
+
     var icon: String {
         switch self {
         case .level: return "circle.grid.cross.fill"
@@ -142,7 +152,8 @@ struct MeasuringToolsView: View {
                     arabicTitle: tool.title(using: L10n(lang: .arabic)),
                     englishTitle: tool.title(using: L10n(lang: .english)),
                     arabicSubtitle: tool.subtitle(using: L10n(lang: .arabic)),
-                    englishSubtitle: tool.subtitle(using: L10n(lang: .english))
+                    englishSubtitle: tool.subtitle(using: L10n(lang: .english)),
+                    keywords: tool.searchKeywords()
                 )
             )
         })

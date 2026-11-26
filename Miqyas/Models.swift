@@ -379,9 +379,9 @@ struct L10n {
     var seismoUnavailable: String { lang == .arabic ? "مقياس التسارع غير متوفر على هذا الجهاز." : "The accelerometer is not available on this device." }
     var seismoUnit: String { lang == .arabic ? "ج" : "g" }
 
-    var toolARTitle: String { lang == .arabic ? "قياس معزّز" : "AR Measure" }
+    var toolARTitle: String { lang == .arabic ? "مقياس بالكاميرا" : "Camera Measure" }
     var toolARSubtitle: String { lang == .arabic ? "المسافة والمساحة" : "Distance and area" }
-    var toolARBadge: String { lang == .arabic ? "واقع" : "AR" }
+    var toolARBadge: String { lang == .arabic ? "كاميرا" : "Camera" }
     var arDistanceMode: String { lang == .arabic ? "مسافة" : "Distance" }
     var arAreaMode: String { lang == .arabic ? "مساحة" : "Area" }
     var arClear: String { lang == .arabic ? "مسح" : "Clear" }
@@ -391,7 +391,18 @@ struct L10n {
     var arTapHeight: String { lang == .arabic ? "المس نقطة لتحديد الضلع الآخر للمستطيل." : "Tap a point to set the other side of the rectangle." }
     var arNeedSurface: String { lang == .arabic ? "لم يُعثر على سطح. حرّك الهاتف ببطء ثم أعد المحاولة." : "No surface found. Move the phone slowly, then try again." }
     var arDone: String { lang == .arabic ? "المس مسح للبدء من جديد." : "Tap Clear to measure again." }
-    var arUnsupported: String { lang == .arabic ? "القياس بالواقع المعزّز غير مدعوم على هذا الجهاز." : "AR measurement is not supported on this device." }
+    var arUnsupported: String { lang == .arabic ? "القياس بالكاميرا غير مدعوم على هذا الجهاز." : "Camera measurement is not supported on this device." }
+    var arLineOptions: String { lang == .arabic ? "خيارات الخط" : "Line Options" }
+    var arLineColor: String { lang == .arabic ? "اللون" : "Color" }
+    var arLineThickness: String { lang == .arabic ? "السُمك" : "Thickness" }
+    var arColorYellow: String { lang == .arabic ? "أصفر" : "Yellow" }
+    var arColorWhite: String { lang == .arabic ? "أبيض" : "White" }
+    var arColorRed: String { lang == .arabic ? "أحمر" : "Red" }
+    var arColorGreen: String { lang == .arabic ? "أخضر" : "Green" }
+    var arColorBlue: String { lang == .arabic ? "أزرق" : "Blue" }
+    var arThicknessThin: String { lang == .arabic ? "رفيع" : "Thin" }
+    var arThicknessMedium: String { lang == .arabic ? "متوسط" : "Medium" }
+    var arThicknessThick: String { lang == .arabic ? "سميك" : "Thick" }
     var arWidth: String { lang == .arabic ? "العرض" : "Width" }
     var arHeight: String { lang == .arabic ? "الارتفاع" : "Height" }
     var arArea: String { lang == .arabic ? "المساحة" : "Area" }

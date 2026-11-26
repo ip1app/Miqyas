@@ -47,6 +47,13 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// Camera-measure line color and thickness. Yellow and medium until the user changes them.
+    @Published var measureLineOptions: MeasureLineOptions = .default {
+        didSet {
+            MeasureLineOptions.save(measureLineOptions, to: .standard)
+        }
+    }
+
     @Published var hiddenCategoryIds: [String] = [] {
         didSet {
             UserDefaults.standard.set(hiddenCategoryIds, forKey: "home_hidden_categories")
@@ -353,6 +360,7 @@ final class AppSettings: ObservableObject {
                 catalog: MeasuringTool.allCases.map(\.rawValue)
             )
         }
+        measureLineOptions = MeasureLineOptions.load(from: .standard)
 
         history = loadHistory()
 
