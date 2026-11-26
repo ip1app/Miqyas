@@ -117,23 +117,34 @@ final class ToolOrderTests: XCTestCase {
         XCTAssertNil(ToolOrder.togglingHidden(layout, id: "sound"))
     }
 
-    func testUpgradeAppendsTheNewMeasuringToolsAfterTheSavedOrder() {
-        let saved = ["sound", "level", "compass"]
+    func testDefaultCatalogOrderIsTheFreshInstallAndResetOrder() {
         let catalog = MeasuringTool.allCases.map(\.rawValue)
-        XCTAssertEqual(Array(catalog.prefix(3)), ["level", "compass", "sound"])
         XCTAssertEqual(
-            Array(catalog.dropFirst(3)),
-            ["ruler", "protractor", "barometer", "pedometer", "speedometer", "light", "magnetometer", "seismometer", "ar"]
+            catalog,
+            [
+                "compass", "ar", "light", "speedometer", "level", "ruler",
+                "protractor", "sound", "pedometer", "barometer", "magnetometer", "seismometer"
+            ]
         )
-
-        let merged = ToolOrder.merged(saved: saved, catalog: catalog)
-        XCTAssertEqual(Array(merged.prefix(3)), saved)
-        XCTAssertEqual(Array(merged.dropFirst(3)), Array(catalog.dropFirst(3)))
-
+        XCTAssertEqual(ToolOrder.merged(saved: [], catalog: catalog), catalog)
         let reset = ToolOrder.reset(catalog: catalog)
         XCTAssertEqual(reset.order, catalog)
         XCTAssertEqual(reset.hidden, [])
         XCTAssertEqual(reset.visible, catalog)
+    }
+
+    func testUpgradeKeepsASavedOrderAndAppendsMissingToolsInCatalogOrder() {
+        let saved = ["sound", "level", "compass"]
+        let catalog = MeasuringTool.allCases.map(\.rawValue)
+        let merged = ToolOrder.merged(saved: saved, catalog: catalog)
+        XCTAssertEqual(
+            merged,
+            [
+                "sound", "level", "compass",
+                "ar", "light", "speedometer", "ruler", "protractor",
+                "pedometer", "barometer", "magnetometer", "seismometer"
+            ]
+        )
     }
 
     func testUnavailableToolsStayInTheOrderAndDoNotCountAsTheLastCard() {

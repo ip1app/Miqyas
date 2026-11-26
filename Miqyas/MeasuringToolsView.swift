@@ -4,18 +4,18 @@ import UniformTypeIdentifiers
 // MARK: - Tools hub
 
 enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
-    case level
     case compass
-    case sound
+    case ar
+    case light
+    case speedometer
+    case level
     case ruler
     case protractor
-    case barometer
+    case sound
     case pedometer
-    case speedometer
-    case light
+    case barometer
     case magnetometer
     case seismometer
-    case ar
 
     var id: String { rawValue }
 
