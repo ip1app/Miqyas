@@ -202,7 +202,7 @@ struct MeasuringToolsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: MeasuringTool.self) { tool in
-                toolDestination(tool)
+                measuringToolScreen(tool)
                     .toolFavoriteStar(tool.id)
             }
             .alert(settings.l10n.cannotHideAll, isPresented: $showCannotHideAlert) {
@@ -620,34 +620,35 @@ struct MeasuringToolsView: View {
         }
     }
 
-    @ViewBuilder
-    private func toolDestination(_ tool: MeasuringTool) -> some View {
-        switch tool {
-        case .level:
-            LevelToolView()
-        case .compass:
-            CompassQiblaToolView()
-        case .sound:
-            SoundMeterToolView()
-        case .ruler:
-            ScreenRulerToolView()
-        case .protractor:
-            ProtractorToolView()
-        case .barometer:
-            BarometerToolView()
-        case .pedometer:
-            PedometerToolView()
-        case .speedometer:
-            SpeedometerToolView()
-        case .light:
-            LightMeterToolView()
-        case .magnetometer:
-            MagnetometerToolView()
-        case .seismometer:
-            SeismometerToolView()
-        case .ar:
-            ARMeasureToolView()
-        }
+}
+
+@ViewBuilder
+func measuringToolScreen(_ tool: MeasuringTool) -> some View {
+    switch tool {
+    case .level:
+        LevelToolView()
+    case .compass:
+        CompassQiblaToolView()
+    case .sound:
+        SoundMeterToolView()
+    case .ruler:
+        ScreenRulerToolView()
+    case .protractor:
+        ProtractorToolView()
+    case .barometer:
+        BarometerToolView()
+    case .pedometer:
+        PedometerToolView()
+    case .speedometer:
+        SpeedometerToolView()
+    case .light:
+        LightMeterToolView()
+    case .magnetometer:
+        MagnetometerToolView()
+    case .seismometer:
+        SeismometerToolView()
+    case .ar:
+        ARMeasureToolView()
     }
 }
 
@@ -1007,7 +1008,7 @@ func openAppSettings() {
     UIApplication.shared.open(url)
 }
 
-private struct ToolFavoriteStar: ViewModifier {
+struct ToolFavoriteStar: ViewModifier {
     let toolID: String
     @EnvironmentObject private var settings: AppSettings
 
@@ -1032,7 +1033,7 @@ private struct ToolFavoriteStar: ViewModifier {
     }
 }
 
-private extension View {
+extension View {
     func toolFavoriteStar(_ toolID: String) -> some View {
         modifier(ToolFavoriteStar(toolID: toolID))
     }

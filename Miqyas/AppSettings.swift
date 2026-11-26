@@ -275,6 +275,15 @@ final class AppSettings: ObservableObject {
         triggerFeedback()
     }
 
+    /// Favorite tools this device can open, in the saved order. Hidden cards stay listed.
+    var favoriteMeasuringTools: [MeasuringTool] {
+        tools(withIDs: ToolFavorites.listed(
+            ordered: allMeasuringToolsInOrder.map(\.id),
+            favorites: measuringToolFavoriteIDs,
+            unavailable: unavailableMeasuringToolIDs
+        ))
+    }
+
     func isMeasuringToolFavorite(_ id: String) -> Bool {
         measuringToolFavoriteIDs.contains(id)
     }

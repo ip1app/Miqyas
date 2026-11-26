@@ -94,6 +94,16 @@ final class ToolBrowseTests: XCTestCase {
         XCTAssertEqual(favoritesSearch, ["level"])
     }
 
+    func testFavoriteListSkipsUnavailableToolsAndKeepsOrder() {
+        let ordered = ["sound", "level", "compass", "ar", "ruler"]
+        let listed = ToolFavorites.listed(
+            ordered: ordered,
+            favorites: ["ruler", "ar", "sound", "missing"],
+            unavailable: ["ar"]
+        )
+        XCTAssertEqual(listed, ["sound", "ruler"])
+    }
+
     func testFavoritesPersistAndDropUnknownIds() {
         let suite = "ToolBrowseTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suite)!

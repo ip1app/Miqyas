@@ -75,6 +75,13 @@ nonisolated enum ToolFavorites {
         return result
     }
 
+    /// Favorites in the saved tool order. Unavailable hardware is left out.
+    /// A tool the user hid from the grid still appears here.
+    static func listed(ordered: [String], favorites: [String], unavailable: Set<String>) -> [String] {
+        let favorite = Set(favorites)
+        return ordered.filter { favorite.contains($0) && !unavailable.contains($0) }
+    }
+
     static func load(from defaults: UserDefaults, catalog: [String]) -> [String] {
         sanitized(defaults.stringArray(forKey: defaultsKey) ?? [], catalog: catalog)
     }

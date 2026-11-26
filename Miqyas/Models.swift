@@ -105,6 +105,8 @@ struct L10n {
 
     // Favorites
     var favoritesTitle: String { lang == .arabic ? "المفضلة ⭐" : "Favorites ⭐" }
+    var favoritesUnitsSection: String { lang == .arabic ? "الوحدات" : "Units" }
+    var favoritesToolsSection: String { lang == .arabic ? "الأدوات" : "Tools" }
     var emptyFavoritesTitle: String { lang == .arabic ? "قائمة المفضلة فارغة" : "Favorites List is Empty" }
     var emptyFavoritesMsg: String { lang == .arabic ? "اضغط على أيقونة النجمة ⭐ داخل أي فئة لإضافتها هنا والوصول إليها بسرعة فائقة." : "Tap the star icon ⭐ inside any category to add it here for fast access." }
 
