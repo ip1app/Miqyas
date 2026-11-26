@@ -93,6 +93,7 @@
         "MARKETING_VERSION": "1.0",
         "PRODUCT_BUNDLE_IDENTIFIER": "app.ip1.MiqyasTests",
         "PRODUCT_NAME": "$(TARGET_NAME)",
+        "STRING_CATALOG_GENERATE_SYMBOLS": "NO",
         "SWIFT_EMIT_LOC_STRINGS": "NO",
         "SWIFT_VERSION": "5.0",
         "TARGETED_DEVICE_FAMILY": "1",
