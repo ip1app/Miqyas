@@ -40,11 +40,11 @@ final class ConversionAccuracyTests: XCTestCase {
                 problems.append("duplicate category id")
             }
             let expectedCounts = [
-                "length": 14, "weight": 17, "temperature": 4, "volume": 21,
+                "length": 14, "weight": 17, "temperature": 4, "volume": 20,
                 "speed": 7, "time": 12, "area": 14, "digital": 10,
-                "energy": 10, "pressure": 12, "power": 8, "fuel": 7,
-                "angle": 7, "frequency": 8, "force": 5, "torque": 4,
-                "density": 7, "data-rate": 9
+                "energy": 10, "pressure": 11, "power": 8, "fuel": 7,
+                "angle": 7, "frequency": 7, "force": 5, "torque": 4,
+                "density": 4, "data-rate": 9
             ]
             for category in unitCategories {
                 counts[category.id] = category.units.count
@@ -82,6 +82,7 @@ final class ConversionAccuracyTests: XCTestCase {
 
         XCTAssertEqual(snapshot.problems, [])
         XCTAssertEqual(snapshot.ids.count, 18)
+        XCTAssertEqual(snapshot.counts.values.reduce(0, +), 170)
         for id in ["length", "weight", "temperature", "volume", "speed", "time", "area", "digital", "energy", "pressure", "power", "fuel", "angle", "frequency"] {
             XCTAssertTrue(snapshot.ids.contains(id), "removed existing category \(id)")
         }
@@ -93,6 +94,64 @@ final class ConversionAccuracyTests: XCTestCase {
             snapshot.icons.filter { UIImage(systemName: $0) == nil }
         }
         XCTAssertEqual(missingIcons, [])
+    }
+
+    func testNoTwoUnitsInACategoryShareAFactor() async {
+        let probes = [0.0, 1.0, -1.0, 2.0, 10.0, 32.0, 100.0, 0.25, 1_000.0]
+        let duplicates = await MainActor.run { () -> [String] in
+            var found: [String] = []
+            for category in unitCategories {
+                let units = category.units
+                for leftIndex in units.indices {
+                    for rightIndex in units.indices where rightIndex > leftIndex {
+                        let left = units[leftIndex]
+                        let right = units[rightIndex]
+                        let sameFactor = probes.allSatisfy { sample in
+                            left.toBase(sample) == right.toBase(sample)
+                                && left.fromBase(sample) == right.fromBase(sample)
+                        }
+                        if sameFactor {
+                            found.append("\(category.id): \(left.abbreviation) == \(right.abbreviation)")
+                        }
+                    }
+                }
+            }
+            return found
+        }
+        XCTAssertEqual(duplicates, [])
+    }
+
+    func testBinaryAndDecimalNamesStayExplicit() async {
+        let names = await MainActor.run { () -> [String: (ar: String, en: String)] in
+            var map: [String: (ar: String, en: String)] = [:]
+            for category in unitCategories where category.id == "digital" || category.id == "data-rate" {
+                for unit in category.units {
+                    map["\(category.id)/\(unit.abbreviation)"] = (unit.nameAr, unit.nameEn)
+                }
+            }
+            return map
+        }
+        func expectLabel(_ key: String, english: String, arabic: String, file: StaticString = #filePath, line: UInt = #line) {
+            XCTAssertTrue(names[key]?.en.contains(english) == true, key, file: file, line: line)
+            XCTAssertTrue(names[key]?.ar.contains(arabic) == true, key, file: file, line: line)
+        }
+        for abbreviation in ["KB", "MB", "GB", "TB", "PB"] {
+            expectLabel("digital/\(abbreviation)", english: "Binary", arabic: "ثنائي")
+        }
+        for abbreviation in ["MB (SI)", "GB (SI)", "TB (SI)"] {
+            expectLabel("digital/\(abbreviation)", english: "Decimal", arabic: "عشري")
+        }
+        for abbreviation in ["kbit/s", "Mbit/s", "Gbit/s", "kB/s", "MB/s"] {
+            expectLabel("data-rate/\(abbreviation)", english: "Decimal", arabic: "عشري")
+        }
+        for abbreviation in ["KiB/s", "MiB/s"] {
+            expectLabel("data-rate/\(abbreviation)", english: "Binary", arabic: "ثنائي")
+        }
+        // Original storage factors stay binary (1024^n).
+        expectClose(await convert(1, from: "KB", to: "B", in: "digital"), 1024)
+        expectClose(await convert(1, from: "MB", to: "B", in: "digital"), 1_048_576)
+        expectClose(await convert(1, from: "GB", to: "B", in: "digital"), 1_073_741_824)
+        expectClose(await convert(1, from: "TB", to: "B", in: "digital"), 1_099_511_627_776)
     }
 
     func testEveryUnitRoundTrips() async {
@@ -173,7 +232,7 @@ final class ConversionAccuracyTests: XCTestCase {
     // MARK: Volume, area, speed
 
     func testCookingVolumeAndOilBarrel() async {
-        expectClose(await convert(1, from: "cm³", to: "mL", in: "volume"), 1)
+        expectClose(await convert(1, from: "mL", to: "L", in: "volume"), 0.001)
         expectClose(await convert(1, from: "ft³", to: "L", in: "volume"), 28.316846592, relative: 1e-12)
         expectClose(await convert(1, from: "in³", to: "L", in: "volume"), 0.016387064, relative: 1e-12)
         // US gallon = 3.785411784 L. Teaspoon = gallon / 768.
@@ -236,7 +295,6 @@ final class ConversionAccuracyTests: XCTestCase {
         expectClose(await convert(1, from: "eV", to: "J", in: "energy"), 1.602176634e-19)
 
         expectClose(await convert(1, from: "hPa", to: "Pa", in: "pressure"), 100)
-        expectClose(await convert(1, from: "mbar", to: "hPa", in: "pressure"), 1)
         expectClose(await convert(1, from: "MPa", to: "bar", in: "pressure"), 10)
         expectClose(await convert(1, from: "mmHg", to: "Pa", in: "pressure"), 133.322387415)
         expectClose(await convert(760, from: "Torr", to: "atm", in: "pressure"), 1, relative: 1e-12)
@@ -268,8 +326,7 @@ final class ConversionAccuracyTests: XCTestCase {
         expectClose(await convert(3600, from: "arcsec", to: "°", in: "angle"), 1)
         expectClose(await convert(1000, from: "mrad", to: "rad", in: "angle"), 1, relative: 1e-12)
 
-        expectClose(await convert(60, from: "BPM", to: "Hz", in: "frequency"), 1)
-        expectClose(await convert(1, from: "RPM", to: "BPM", in: "frequency"), 1)
+        expectClose(await convert(60, from: "RPM", to: "Hz", in: "frequency"), 1)
         expectClose(await convert(1, from: "THz", to: "GHz", in: "frequency"), 1000)
         expectClose(await convert(1, from: "mHz", to: "Hz", in: "frequency"), 0.001)
 
@@ -283,8 +340,6 @@ final class ConversionAccuracyTests: XCTestCase {
         expectClose(await convert(12, from: "lbf·in", to: "lbf·ft", in: "torque"), 1)
 
         expectClose(await convert(1, from: "g/cm³", to: "kg/m³", in: "density"), 1000)
-        expectClose(await convert(1, from: "g/mL", to: "kg/L", in: "density"), 1)
-        expectClose(await convert(1, from: "SG", to: "g/cm³", in: "density"), 1)
         expectClose(await convert(1, from: "lb/ft³", to: "kg/m³", in: "density"), 0.45359237 / (0.3048 * 0.3048 * 0.3048))
         expectClose(await convert(1, from: "lb/gal", to: "kg/m³", in: "density"), 0.45359237 / 0.003785411784)
     }

@@ -108,8 +108,6 @@ let unitCategories: [UnitCategory] = [
             Unit(nameAr: "كوب معياري", nameEn: "Standard Cup", abbreviation: "cup", toBase: { $0 * 0.236588 }, fromBase: { $0 / 0.236588 }),
             Unit(nameAr: "أونصة سائلة", nameEn: "Fluid Ounce", abbreviation: "fl oz", toBase: { $0 * 0.0295735 }, fromBase: { $0 / 0.0295735 }),
             Unit(nameAr: "ملعقة طعام", nameEn: "Tablespoon", abbreviation: "tbsp", toBase: { $0 * 0.0147868 }, fromBase: { $0 / 0.0147868 }),
-            // 1 L = 1 dm³ exactly, so 1 cm³ = 1 mL (BIPM).
-            Unit(nameAr: "سنتيمتر مكعب", nameEn: "Cubic Centimeter", abbreviation: "cm³", toBase: { $0 / 1000 }, fromBase: { $0 * 1000 }),
             // International foot and inch are exact (NIST): 1 ft = 0.3048 m, 1 in = 0.0254 m.
             Unit(nameAr: "قدم مكعب", nameEn: "Cubic Foot", abbreviation: "ft³", toBase: { $0 * 0.3048 * 0.3048 * 0.3048 * 1000 }, fromBase: { $0 / (0.3048 * 0.3048 * 0.3048 * 1000) }),
             Unit(nameAr: "بوصة مكعبة", nameEn: "Cubic Inch", abbreviation: "in³", toBase: { $0 * 0.0254 * 0.0254 * 0.0254 * 1000 }, fromBase: { $0 / (0.0254 * 0.0254 * 0.0254 * 1000) }),
@@ -218,14 +216,16 @@ let unitCategories: [UnitCategory] = [
         gradientColors: [Color.cyan, Color.blue],
         units: [
             Unit(nameAr: "بايت", nameEn: "Byte", abbreviation: "B", toBase: { $0 }, fromBase: { $0 }),
-            Unit(nameAr: "كيلوبايت", nameEn: "Kilobyte", abbreviation: "KB", toBase: { $0 * 1024 }, fromBase: { $0 / 1024 }),
-            Unit(nameAr: "ميجابايت", nameEn: "Megabyte", abbreviation: "MB", toBase: { $0 * 1_048_576 }, fromBase: { $0 / 1_048_576 }),
-            Unit(nameAr: "جيجابايت", nameEn: "Gigabyte", abbreviation: "GB", toBase: { $0 * 1_073_741_824 }, fromBase: { $0 / 1_073_741_824 }),
-            Unit(nameAr: "تيرابايت", nameEn: "Terabyte", abbreviation: "TB", toBase: { $0 * 1_099_511_627_776 }, fromBase: { $0 / 1_099_511_627_776 }),
-            // 1 byte = 8 bits. KB…TB above stay binary (1024^n), as this category already did.
+            // Binary (1024^n). Factors are unchanged; the name says binary so these
+            // are not confused with the decimal sizes below or with decimal MB/s.
+            Unit(nameAr: "كيلوبايت (ثنائي)", nameEn: "Kilobyte (Binary)", abbreviation: "KB", toBase: { $0 * 1024 }, fromBase: { $0 / 1024 }),
+            Unit(nameAr: "ميجابايت (ثنائي)", nameEn: "Megabyte (Binary)", abbreviation: "MB", toBase: { $0 * 1_048_576 }, fromBase: { $0 / 1_048_576 }),
+            Unit(nameAr: "جيجابايت (ثنائي)", nameEn: "Gigabyte (Binary)", abbreviation: "GB", toBase: { $0 * 1_073_741_824 }, fromBase: { $0 / 1_073_741_824 }),
+            Unit(nameAr: "تيرابايت (ثنائي)", nameEn: "Terabyte (Binary)", abbreviation: "TB", toBase: { $0 * 1_099_511_627_776 }, fromBase: { $0 / 1_099_511_627_776 }),
+            // 1 byte = 8 bits.
             Unit(nameAr: "بت", nameEn: "Bit", abbreviation: "bit", toBase: { $0 / 8 }, fromBase: { $0 * 8 }),
             // 1024^5 bytes.
-            Unit(nameAr: "بيتابايت", nameEn: "Petabyte", abbreviation: "PB", toBase: { $0 * 1_125_899_906_842_624 }, fromBase: { $0 / 1_125_899_906_842_624 }),
+            Unit(nameAr: "بيتابايت (ثنائي)", nameEn: "Petabyte (Binary)", abbreviation: "PB", toBase: { $0 * 1_125_899_906_842_624 }, fromBase: { $0 / 1_125_899_906_842_624 }),
             // Decimal SI labels (powers of 10), the figures printed on drives and memory cards (BIPM).
             Unit(nameAr: "ميجابايت (عشري)", nameEn: "Megabyte (Decimal)", abbreviation: "MB (SI)", toBase: { $0 * 1_000_000 }, fromBase: { $0 / 1_000_000 }),
             Unit(nameAr: "جيجابايت (عشري)", nameEn: "Gigabyte (Decimal)", abbreviation: "GB (SI)", toBase: { $0 * 1_000_000_000 }, fromBase: { $0 / 1_000_000_000 }),
@@ -271,9 +271,8 @@ let unitCategories: [UnitCategory] = [
             Unit(nameAr: "بار", nameEn: "Bar", abbreviation: "bar", toBase: { $0 * 100_000 }, fromBase: { $0 / 100_000 }),
             Unit(nameAr: "ضغط جوي قياسي", nameEn: "Atmosphere", abbreviation: "atm", toBase: { $0 * 101_325 }, fromBase: { $0 / 101_325 }),
             Unit(nameAr: "رطل لكل بوصة مربعة", nameEn: "PSI", abbreviation: "psi", toBase: { $0 * 6894.76 }, fromBase: { $0 / 6894.76 }),
-            // 1 mbar = 1 hPa = 100 Pa exactly (the bar is 10⁵ Pa, BIPM).
+            // 1 hPa = 100 Pa exactly (BIPM). A millibar is the same quantity, so it is not listed again.
             Unit(nameAr: "هكتوباسكال", nameEn: "Hectopascal", abbreviation: "hPa", toBase: { $0 * 100 }, fromBase: { $0 / 100 }),
-            Unit(nameAr: "مليبار", nameEn: "Millibar", abbreviation: "mbar", toBase: { $0 * 100 }, fromBase: { $0 / 100 }),
             Unit(nameAr: "ميجاباسكال", nameEn: "Megapascal", abbreviation: "MPa", toBase: { $0 * 1_000_000 }, fromBase: { $0 / 1_000_000 }),
             // Conventional mmHg (NIST). Torr is exactly 1/760 of the standard atmosphere (101325 Pa).
             Unit(nameAr: "مليمتر زئبق", nameEn: "Millimeter of Mercury", abbreviation: "mmHg", toBase: { $0 * 133.322387415 }, fromBase: { $0 / 133.322387415 }),
@@ -364,9 +363,7 @@ let unitCategories: [UnitCategory] = [
             Unit(nameAr: "جيجاهرتز", nameEn: "Gigahertz", abbreviation: "GHz", toBase: { $0 * 1_000_000_000 }, fromBase: { $0 / 1_000_000_000 }),
             Unit(nameAr: "دورة في الدقيقة", nameEn: "RPM", abbreviation: "RPM", toBase: { $0 / 60 }, fromBase: { $0 * 60 }),
             Unit(nameAr: "مليهرتز", nameEn: "Millihertz", abbreviation: "mHz", toBase: { $0 / 1000 }, fromBase: { $0 * 1000 }),
-            Unit(nameAr: "تيراهرتز", nameEn: "Terahertz", abbreviation: "THz", toBase: { $0 * 1_000_000_000_000 }, fromBase: { $0 / 1_000_000_000_000 }),
-            // Same dimension as RPM (cycles per minute); named for pulse and tempo.
-            Unit(nameAr: "نبضة في الدقيقة", nameEn: "Beats per Minute", abbreviation: "BPM", toBase: { $0 / 60 }, fromBase: { $0 * 60 })
+            Unit(nameAr: "تيراهرتز", nameEn: "Terahertz", abbreviation: "THz", toBase: { $0 * 1_000_000_000_000 }, fromBase: { $0 / 1_000_000_000_000 })
         ]
     ),
     UnitCategory(
@@ -408,22 +405,18 @@ let unitCategories: [UnitCategory] = [
         id: "density",
         titleAr: "الكثافة",
         titleEn: "Density",
-        subtitleAr: "كغ/م³، غ/سم³، كثافة نسبية...",
-        subtitleEn: "kg/m³, g/cm³, Specific Gravity...",
+        subtitleAr: "كغ/م³، غ/سم³، رطل/قدم³...",
+        subtitleEn: "kg/m³, g/cm³, lb/ft³...",
         icon: "cube.fill",
         gradientColors: [Color.brown, Color.teal],
         units: [
-            // Base: kg/m³. 1 g/cm³ = 1 g/mL = 1 kg/L = 1000 kg/m³.
+            // Base: kg/m³. 1 g/cm³ = 1000 kg/m³. g/mL, kg/L, and specific gravity match g/cm³, so they are not listed again.
             Unit(nameAr: "كيلوغرام/متر مكعب", nameEn: "Kilogram per m³", abbreviation: "kg/m³", toBase: { $0 }, fromBase: { $0 }),
             Unit(nameAr: "غرام/سم³", nameEn: "Gram per cm³", abbreviation: "g/cm³", toBase: { $0 * 1000 }, fromBase: { $0 / 1000 }),
-            Unit(nameAr: "غرام/مليلتر", nameEn: "Gram per mL", abbreviation: "g/mL", toBase: { $0 * 1000 }, fromBase: { $0 / 1000 }),
-            Unit(nameAr: "كيلوغرام/لتر", nameEn: "Kilogram per Liter", abbreviation: "kg/L", toBase: { $0 * 1000 }, fromBase: { $0 / 1000 }),
             // 1 lb/ft³. 1 ft³ = 0.3048³ m³. 1 lb = 0.45359237 kg (NIST).
             Unit(nameAr: "رطل/قدم مكعب", nameEn: "Pound per ft³", abbreviation: "lb/ft³", toBase: { $0 * 0.45359237 / (0.3048 * 0.3048 * 0.3048) }, fromBase: { $0 * (0.3048 * 0.3048 * 0.3048) / 0.45359237 }),
             // 1 US gallon = 3.785411784 L = 0.003785411784 m³.
-            Unit(nameAr: "رطل/جالون أمريكي", nameEn: "Pound per US Gallon", abbreviation: "lb/gal", toBase: { $0 * 0.45359237 / 0.003785411784 }, fromBase: { $0 * 0.003785411784 / 0.45359237 }),
-            // Specific gravity relative to water at 4 °C (1000 kg/m³). Dimensionless, shown as that scale.
-            Unit(nameAr: "كثافة نسبية (ماء)", nameEn: "Specific Gravity (Water)", abbreviation: "SG", toBase: { $0 * 1000 }, fromBase: { $0 / 1000 })
+            Unit(nameAr: "رطل/جالون أمريكي", nameEn: "Pound per US Gallon", abbreviation: "lb/gal", toBase: { $0 * 0.45359237 / 0.003785411784 }, fromBase: { $0 * 0.003785411784 / 0.45359237 })
         ]
     ),
     UnitCategory(
@@ -435,18 +428,19 @@ let unitCategories: [UnitCategory] = [
         icon: "arrow.up.arrow.down.circle.fill",
         gradientColors: [Color.blue, Color.purple],
         units: [
-            // Base: bit/s. Decimal prefixes are the SI ones ISPs use (BIPM):
-            // 1 Mbit/s = 10⁶ bit/s. KiB/s and MiB/s are the IEC binary prefixes
-            // common in file-copy readouts. 1 byte = 8 bits.
+            // Base: bit/s. 1 byte = 8 bits.
+            // Decimal prefixes are powers of 10 (BIPM), the way ISPs quote throughput.
+            // Names say decimal so they are not read as the binary KB/MB used for storage.
             Unit(nameAr: "بت/ثانية", nameEn: "Bit per second", abbreviation: "bit/s", toBase: { $0 }, fromBase: { $0 }),
-            Unit(nameAr: "كيلوبت/ثانية", nameEn: "Kilobit per second", abbreviation: "kbit/s", toBase: { $0 * 1_000 }, fromBase: { $0 / 1_000 }),
-            Unit(nameAr: "ميجابت/ثانية", nameEn: "Megabit per second", abbreviation: "Mbit/s", toBase: { $0 * 1_000_000 }, fromBase: { $0 / 1_000_000 }),
-            Unit(nameAr: "جيجابت/ثانية", nameEn: "Gigabit per second", abbreviation: "Gbit/s", toBase: { $0 * 1_000_000_000 }, fromBase: { $0 / 1_000_000_000 }),
+            Unit(nameAr: "كيلوبت/ثانية (عشري)", nameEn: "Kilobit per second (Decimal)", abbreviation: "kbit/s", toBase: { $0 * 1_000 }, fromBase: { $0 / 1_000 }),
+            Unit(nameAr: "ميجابت/ثانية (عشري)", nameEn: "Megabit per second (Decimal)", abbreviation: "Mbit/s", toBase: { $0 * 1_000_000 }, fromBase: { $0 / 1_000_000 }),
+            Unit(nameAr: "جيجابت/ثانية (عشري)", nameEn: "Gigabit per second (Decimal)", abbreviation: "Gbit/s", toBase: { $0 * 1_000_000_000 }, fromBase: { $0 / 1_000_000_000 }),
             Unit(nameAr: "بايت/ثانية", nameEn: "Byte per second", abbreviation: "B/s", toBase: { $0 * 8 }, fromBase: { $0 / 8 }),
-            Unit(nameAr: "كيلوبايت/ثانية", nameEn: "Kilobyte per second", abbreviation: "kB/s", toBase: { $0 * 8_000 }, fromBase: { $0 / 8_000 }),
-            Unit(nameAr: "ميجابايت/ثانية", nameEn: "Megabyte per second", abbreviation: "MB/s", toBase: { $0 * 8_000_000 }, fromBase: { $0 / 8_000_000 }),
-            Unit(nameAr: "كيبيبايت/ثانية", nameEn: "Kibibyte per second", abbreviation: "KiB/s", toBase: { $0 * 8 * 1024 }, fromBase: { $0 / (8 * 1024) }),
-            Unit(nameAr: "ميبيبايت/ثانية", nameEn: "Mebibyte per second", abbreviation: "MiB/s", toBase: { $0 * 8 * 1024 * 1024 }, fromBase: { $0 / (8 * 1024 * 1024) })
+            Unit(nameAr: "كيلوبايت/ثانية (عشري)", nameEn: "Kilobyte per second (Decimal)", abbreviation: "kB/s", toBase: { $0 * 8_000 }, fromBase: { $0 / 8_000 }),
+            Unit(nameAr: "ميجابايت/ثانية (عشري)", nameEn: "Megabyte per second (Decimal)", abbreviation: "MB/s", toBase: { $0 * 8_000_000 }, fromBase: { $0 / 8_000_000 }),
+            // IEC binary prefixes (1024), the figures file-copy speeds often show.
+            Unit(nameAr: "كيبيبايت/ثانية (ثنائي)", nameEn: "Kibibyte per second (Binary)", abbreviation: "KiB/s", toBase: { $0 * 8 * 1024 }, fromBase: { $0 / (8 * 1024) }),
+            Unit(nameAr: "ميبيبايت/ثانية (ثنائي)", nameEn: "Mebibyte per second (Binary)", abbreviation: "MiB/s", toBase: { $0 * 8 * 1024 * 1024 }, fromBase: { $0 / (8 * 1024 * 1024) })
         ]
     )
 ]
