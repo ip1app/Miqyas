@@ -193,72 +193,12 @@ struct HomeView: View {
     }
 
     private var headerBanner: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.caption.bold())
-                        .foregroundColor(.yellow)
-                    Text(settings.l10n.smartConverter)
-                        .font(.system(size: 13, weight: .heavy, design: .rounded))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [Color.blue, Color.cyan],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                }
-                .padding(.horizontal, 10)
-                .padding(.vertical, 4)
-                .background(.ultraThinMaterial)
-                .clipShape(Capsule())
-                .overlay(
-                    Capsule()
-                        .stroke(Color.blue.opacity(0.3), lineWidth: 1)
-                )
-
-                Text(settings.l10n.fastAccurate)
-                    .font(.system(size: 28, weight: .heavy, design: .rounded))
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: accentGradientColors,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .shadow(color: Color.blue.opacity(0.12), radius: 6, y: 3)
-            }
-
-            Spacer()
-
-            // Glowing 3D Glass Badge
-            ZStack {
-                Circle()
-                    .fill(Color.blue.opacity(0.35))
-                    .frame(width: 56, height: 56)
-                    .blur(radius: 10)
-
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.blue, Color.cyan],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 52, height: 52)
-                    .overlay(
-                        Circle()
-                            .stroke(Color.white.opacity(0.6), lineWidth: 1.5)
-                    )
-
-                Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.title2.bold())
-                    .foregroundColor(.white)
-            }
-        }
-        .padding(.top, 8)
+        CatalogHeaderView(
+            badge: settings.l10n.smartConverter,
+            title: settings.l10n.homeHeadline,
+            subtitle: settings.l10n.homeSubtitle,
+            icon: "arrow.triangle.2.circlepath"
+        )
     }
 
     private var searchBar: some View {

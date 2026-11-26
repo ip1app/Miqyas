@@ -288,7 +288,102 @@ struct NeonAmbientBackground: View {
     }
 }
 
-// MARK: - Shared catalog search and filters
+// MARK: - Shared catalog header, search and filters
+
+/// Shared catalog header view used by the Home (units) and Tools pages.
+/// Keeps a consistent fixed height and layout so controls below sit at the exact same y position.
+struct CatalogHeaderView: View {
+    let badge: String
+    let title: String
+    var subtitle: String? = nil
+    let icon: String
+
+    var body: some View {
+        HStack(alignment: .center) {
+            VStack(alignment: .leading, spacing: 6) {
+                HStack(spacing: 6) {
+                    Image(systemName: "sparkles")
+                        .font(.caption.bold())
+                        .foregroundColor(.yellow)
+                    Text(badge)
+                        .font(.system(size: 13, weight: .heavy, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.blue, Color.cyan],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(.ultraThinMaterial)
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                )
+
+                Text(title)
+                    .font(.system(size: 28, weight: .heavy, design: .rounded))
+                    .foregroundStyle(
+                        LinearGradient(
+                            colors: accentGradientColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .shadow(color: Color.blue.opacity(0.12), radius: 6, y: 3)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.65)
+
+                Group {
+                    if let subtitle = subtitle, !subtitle.isEmpty {
+                        Text(subtitle)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        Text(" ")
+                            .font(.system(size: 14, weight: .medium))
+                            .accessibilityHidden(true)
+                    }
+                }
+            }
+
+            Spacer()
+
+            // Glowing 3D Glass Badge
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.35))
+                    .frame(width: 56, height: 56)
+                    .blur(radius: 10)
+
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.blue, Color.cyan],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 52, height: 52)
+                    .overlay(
+                        Circle()
+                            .stroke(Color.white.opacity(0.6), lineWidth: 1.5)
+                    )
+
+                Image(systemName: icon)
+                    .font(.title2.bold())
+                    .foregroundColor(.white)
+            }
+            .frame(width: 56, height: 56)
+        }
+        .padding(.top, 8)
+        .frame(height: 94)
+    }
+}
 
 /// The home search field. The tools page uses the same field with its own placeholder.
 struct CatalogSearchField: View {

@@ -181,6 +181,8 @@ struct L10n {
 
     // Measuring Tools
     var tabTools: String { lang == .arabic ? "أدوات القياس" : "Measuring Tools" }
+    var homeHeadline: String { lang == .arabic ? "تحويل الوحدات" : "Unit Converter" }
+    var homeSubtitle: String { lang == .arabic ? "طول، وزن، حرارة، مساحة، والمزيد" : "Length, weight, temperature, area, and more" }
     var toolsHeadline: String { lang == .arabic ? "أدوات القياس" : "Measuring Tools" }
     var toolsSubtitle: String { lang == .arabic ? "مسطرة، زاوية، ارتفاع، خطوات، والمزيد" : "Ruler, angle, altitude, steps, and more" }
     var toolsSearchPlaceholder: String { lang == .arabic ? "ابحث عن أداة..." : "Search tools..." }
