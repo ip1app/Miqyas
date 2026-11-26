@@ -1,4 +1,5 @@
 import SwiftUI
+import StoreKit
 
 // MARK: - Unit Converter View (Detail Screen)
 
@@ -7,6 +8,7 @@ struct ConverterView: View {
 
     @EnvironmentObject var settings: AppSettings
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.requestReview) private var requestReview
 
     @State private var fromIndex: Int = 0
     @State private var toIndex: Int = 1
@@ -17,6 +19,13 @@ struct ConverterView: View {
     @State private var selectingSheetType: UnitSheetType?
     @State private var showingCustomKeypad: Bool = false
     @FocusState private var isInputFocused: Bool
+    @State private var reviewWatchTask: Task<Void, Never>?
+    @State private var didRegisterVisibleBaseline = false
+
+    /// Wait until a result has settled before counting it, so keypad entry and
+    /// quick edits become one conversion. The system review dialog is requested
+    /// only after that pause, and never while the text field is focused.
+    private static let settledConversionDelay: UInt64 = 600_000_000
 
     enum UnitSheetType: Identifiable {
         case from, to
@@ -228,7 +237,36 @@ struct ConverterView: View {
                     .padding(.bottom, 24)
             }
         }
+        .onAppear {
+            // The value already on screen is a reload, not a new conversion.
+            // Only the first appearance sets that baseline, so a later edit is
+            // still counted if SwiftUI calls onAppear again.
+            guard !didRegisterVisibleBaseline else { return }
+            didRegisterVisibleBaseline = true
+            settings.registerSuccessfulConversion(
+                normalizedInput: normalizeDigits(inputAmount),
+                result: finiteConvertedNumber,
+                signature: conversionSignature,
+                isReload: true
+            )
+        }
+        .onChange(of: conversionSignature) { _, _ in
+            // Keystrokes in the focused field are not conversions yet.
+            guard !isInputFocused else { return }
+            scheduleConversionReviewCheck()
+        }
+        .onChange(of: isInputFocused) { _, focused in
+            if focused {
+                reviewWatchTask?.cancel()
+            } else {
+                scheduleConversionReviewCheck()
+            }
+        }
         .onDisappear {
+            reviewWatchTask?.cancel()
+            if !isInputFocused {
+                commitConversionForReview(requestPrompt: false)
+            }
             recordHistory()
         }
     }
@@ -873,6 +911,40 @@ struct ConverterView: View {
                 showingToast = false
             }
         }
+    }
+
+    private var conversionSignature: String {
+        let input = normalizeDigits(inputAmount).trimmingCharacters(in: .whitespacesAndNewlines)
+        return "\(category.id)|\(fromUnit.id)|\(toUnit.id)|\(input)"
+    }
+
+    private var finiteConvertedNumber: Double? {
+        guard let amount = numericValue else { return nil }
+        let result = toUnit.fromBase(fromUnit.toBase(amount))
+        return result.isFinite ? result : nil
+    }
+
+    private func scheduleConversionReviewCheck() {
+        reviewWatchTask?.cancel()
+        reviewWatchTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: Self.settledConversionDelay)
+            guard !Task.isCancelled else { return }
+            // Still typing into the field: wait until it is dismissed.
+            guard !isInputFocused else { return }
+            commitConversionForReview(requestPrompt: true)
+        }
+    }
+
+    private func commitConversionForReview(requestPrompt: Bool) {
+        let outcome = settings.registerSuccessfulConversion(
+            normalizedInput: normalizeDigits(inputAmount),
+            result: finiteConvertedNumber,
+            signature: conversionSignature,
+            isReload: false
+        )
+        guard requestPrompt, outcome.shouldRequestReview else { return }
+        requestReview()
+        settings.markReviewRequestedForCurrentVersion()
     }
 
     private func recordHistory() {

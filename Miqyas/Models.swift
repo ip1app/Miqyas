@@ -165,6 +165,8 @@ struct L10n {
     var appNameVal: String { lang == .arabic ? "مقياس - Miqyas" : "Miqyas - Unit Converter" }
     var versionTitle: String { lang == .arabic ? "الإصدار" : "Version" }
     var privacyPolicyTitle: String { lang == .arabic ? "سياسة الخصوصية والاستخدام" : "Privacy & Terms of Use" }
+    var rateAppTitle: String { lang == .arabic ? "قيّم مقياس" : "Rate Miqyas" }
+    var rateAppSubtitle: String { lang == .arabic ? "رأيك يساعدنا نطوّر التطبيق" : "Your feedback helps us improve" }
     var resetDefaultsBtn: String { lang == .arabic ? "استعادة الإعدادات الافتراضية" : "Restore Default Settings" }
     var resetAlertTitle: String { lang == .arabic ? "إعادة التعيين" : "Reset Settings" }
     var resetAlertMsg: String { lang == .arabic ? "هل ترغب في إعادة جميع الإعدادات وسجل التحويلات إلى الحالة الافتراضية؟" : "Do you want to reset all settings and history to default?" }

@@ -4,8 +4,7 @@
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
-      buildImplicitDependencies = "YES"
-      buildArchitectures = "Automatic">
+      buildImplicitDependencies = "YES">
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -26,10 +25,10 @@
             buildForRunning = "NO"
             buildForProfiling = "NO"
             buildForArchiving = "NO"
-            buildForAnalyzing = "YES">
+            buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F1A2B3C430B35FAB006453F6"
+               BlueprintIdentifier = "E92CA7B030B35FAB006453F6"
                BuildableName = "MiqyasTests.xctest"
                BlueprintName = "MiqyasTests"
                ReferencedContainer = "container:Miqyas.xcodeproj">
@@ -44,11 +43,10 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
          <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
+            skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "F1A2B3C430B35FAB006453F6"
+               BlueprintIdentifier = "E92CA7B030B35FAB006453F6"
                BuildableName = "MiqyasTests.xctest"
                BlueprintName = "MiqyasTests"
                ReferencedContainer = "container:Miqyas.xcodeproj">

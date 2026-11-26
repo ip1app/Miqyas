@@ -19,7 +19,7 @@
       "name": "Products",
       "children": [
         { "path": "<PRODUCTS>/Miqyas.app", "id": "E92CA79E30B35FAB006453F5", "type": "wrapper.application", "index": false },
-        { "path": "<PRODUCTS>/MiqyasTests.xctest", "id": "F1A2B3C530B35FAB006453F7", "type": "wrapper.cfbundle", "index": false },
+        { "path": "<PRODUCTS>/MiqyasTests.xctest", "id": "E92CA7B130B35FAB006453F6", "type": "wrapper.cfbundle", "index": false },
       ],
     },
   ],
@@ -71,7 +71,7 @@
     },
     {
       "name": "MiqyasTests",
-      "id": "F1A2B3C430B35FAB006453F6",
+      "id": "E92CA7B030B35FAB006453F6",
       "product": "Products/MiqyasTests.xctest",
       "product-type": "bundle.unit-test",
       "test-host-target": "Miqyas",

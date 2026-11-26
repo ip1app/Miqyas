@@ -66,8 +66,20 @@ final class AppSettings: ObservableObject {
         didSet { UserDefaults.standard.set(appColorScheme.rawValue, forKey: "appColorScheme") }
     }
 
+    /// In-memory review counter. The successful-conversion total and the last
+    /// prompted version are persisted; the on-screen signature is not.
+    private var reviewTracker = ReviewPromptTracker()
+
     var l10n: L10n {
         L10n(lang: appLanguage)
+    }
+
+    static var marketingVersion: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+        if let version, !version.isEmpty {
+            return version
+        }
+        return "1.0"
     }
 
     // MARK: - Home Layout (Card Order & Visibility)
@@ -225,6 +237,36 @@ final class AppSettings: ObservableObject {
            let scheme = AppColorScheme(rawValue: savedScheme) {
             appColorScheme = scheme
         }
+
+        reviewTracker = ReviewPromptTracker.load(from: .standard)
+    }
+
+    /// Records one conversion attempt toward the automatic review prompt.
+    /// Reloads and invalid input leave the saved count unchanged.
+    @discardableResult
+    func registerSuccessfulConversion(
+        normalizedInput: String,
+        result: Double?,
+        signature: String,
+        isReload: Bool
+    ) -> ReviewPromptTracker.Outcome {
+        let outcome = reviewTracker.record(
+            normalizedInput: normalizedInput,
+            result: result,
+            signature: signature,
+            isReload: isReload,
+            currentVersion: Self.marketingVersion
+        )
+        if outcome.counted {
+            reviewTracker.save(to: .standard)
+        }
+        return outcome
+    }
+
+    /// Call after `requestReview()` so this app version is not asked again.
+    func markReviewRequestedForCurrentVersion() {
+        reviewTracker.markReviewRequested(version: Self.marketingVersion)
+        reviewTracker.save(to: .standard)
     }
 
     func isFavorite(_ categoryId: String) -> Bool {
