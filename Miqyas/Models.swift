@@ -165,6 +165,8 @@ struct L10n {
     var appNameVal: String { lang == .arabic ? "مقياس - Miqyas" : "Miqyas - Unit Converter" }
     var versionTitle: String { lang == .arabic ? "الإصدار" : "Version" }
     var privacyPolicyTitle: String { lang == .arabic ? "سياسة الخصوصية والاستخدام" : "Privacy & Terms of Use" }
+    var rateAppTitle: String { lang == .arabic ? "قيّم مقياس" : "Rate Miqyas" }
+    var rateAppSubtitle: String { lang == .arabic ? "رأيك يساعدنا نطوّر التطبيق" : "Your feedback helps us improve" }
     var resetDefaultsBtn: String { lang == .arabic ? "استعادة الإعدادات الافتراضية" : "Restore Default Settings" }
     var resetAlertTitle: String { lang == .arabic ? "إعادة التعيين" : "Reset Settings" }
     var resetAlertMsg: String { lang == .arabic ? "هل ترغب في إعادة جميع الإعدادات وسجل التحويلات إلى الحالة الافتراضية؟" : "Do you want to reset all settings and history to default?" }
@@ -645,6 +647,38 @@ struct RealWorldHelper {
             items.append(RealWorldItem(emoji: "🤒", titleAr: "حرارة جسم الإنسان (37°C)", titleEn: "Human Body (37°C)", factorInBase: 37, unitLabelAr: "حرارة الجسم", unitLabelEn: "Body Temp", isThreshold: true))
             items.append(RealWorldItem(emoji: "♨️", titleAr: "غليان الماء (100°C)", titleEn: "Water Boiling (100°C)", factorInBase: 100, unitLabelAr: "غليان الماء", unitLabelEn: "Boiling", isThreshold: true))
             return items
+
+        case "force":
+            // baseValue is in Newtons
+            return [
+                RealWorldItem(emoji: "🍎", titleAr: "وزن تفاحة (1 نيوتن تقريباً)", titleEn: "An Apple's Weight (~1 N)", factorInBase: 1, unitLabelAr: "تفاحة", unitLabelEn: "Apple"),
+                RealWorldItem(emoji: "🧍", titleAr: "وزن شخص 70 كغ على الأرض (686 نيوتن)", titleEn: "70 kg Person (686 N)", factorInBase: 70 * 9.80665, unitLabelAr: "شخص بالغ", unitLabelEn: "Adult"),
+                RealWorldItem(emoji: "🚗", titleAr: "وزن سيارة صغيرة (12 كيلونيوتن)", titleEn: "Small Car Weight (12 kN)", factorInBase: 12_000, unitLabelAr: "سيارة", unitLabelEn: "Car")
+            ]
+
+        case "torque":
+            // baseValue is in Newton-meters
+            return [
+                RealWorldItem(emoji: "🧴", titleAr: "فتح غطاء زجاجة (2 نيوتن متر)", titleEn: "Bottle Cap (2 N·m)", factorInBase: 2, unitLabelAr: "غطاء زجاجة", unitLabelEn: "Bottle Cap"),
+                RealWorldItem(emoji: "🔩", titleAr: "شد صواميل إطار سيارة (110 نيوتن متر)", titleEn: "Car Lug Nuts (110 N·m)", factorInBase: 110, unitLabelAr: "صامولة إطار", unitLabelEn: "Lug Nut"),
+                RealWorldItem(emoji: "🚗", titleAr: "عزم محرك سيارة عائلية (250 نيوتن متر)", titleEn: "Family-Car Engine (250 N·m)", factorInBase: 250, unitLabelAr: "محرك سيارة", unitLabelEn: "Car Engine")
+            ]
+
+        case "density":
+            // baseValue is in kg/m³
+            return [
+                RealWorldItem(emoji: "💨", titleAr: "هواء الغرفة (1.2 كغ/م³)", titleEn: "Room Air (1.2 kg/m³)", factorInBase: 1.2, unitLabelAr: "هواء", unitLabelEn: "Air"),
+                RealWorldItem(emoji: "💧", titleAr: "الماء النقي عند 4° (1000 كغ/م³)", titleEn: "Pure Water at 4°C (1000 kg/m³)", factorInBase: 1000, unitLabelAr: "ماء", unitLabelEn: "Water"),
+                RealWorldItem(emoji: "🪙", titleAr: "الذهب الخالص (19300 كغ/م³)", titleEn: "Pure Gold (19,300 kg/m³)", factorInBase: 19_300, unitLabelAr: "ذهب", unitLabelEn: "Gold")
+            ]
+
+        case "data-rate":
+            // baseValue is in bit/s
+            return [
+                RealWorldItem(emoji: "🎵", titleAr: "بث أغنية عالية الجودة (320 كيلوبت/ث)", titleEn: "High-Quality Audio (320 kbit/s)", factorInBase: 320_000, unitLabelAr: "بث صوتي", unitLabelEn: "Audio Stream"),
+                RealWorldItem(emoji: "🎬", titleAr: "بث فيلم 4K (25 ميجابت/ث)", titleEn: "4K Video Stream (25 Mbit/s)", factorInBase: 25_000_000, unitLabelAr: "بث 4K", unitLabelEn: "4K Stream"),
+                RealWorldItem(emoji: "🏠", titleAr: "إنترنت منزلي سريع (500 ميجابت/ث)", titleEn: "Fast Home Internet (500 Mbit/s)", factorInBase: 500_000_000, unitLabelAr: "إنترنت منزلي", unitLabelEn: "Home Internet")
+            ]
 
         default:
             return []
