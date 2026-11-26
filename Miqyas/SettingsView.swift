@@ -274,6 +274,8 @@ struct SettingsView: View {
                     settings.history.removeAll()
                     settings.categoryOrder = unitCategories.map(\.id)
                     settings.hiddenCategoryIds.removeAll()
+                    settings.toolOrder = MeasuringTool.allCases.map(\.rawValue)
+                    settings.hiddenMeasuringToolIds.removeAll()
                     settings.maxDecimalDigits = 4
                     settings.useScientificNotation = true
                     settings.useThousandsSeparator = true

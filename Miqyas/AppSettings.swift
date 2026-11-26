@@ -26,6 +26,20 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// Saved measuring-tool card order. Empty means the catalog order.
+    /// New tools missing from a saved order are appended when the grid is built.
+    @Published var toolOrder: [String] = [] {
+        didSet {
+            UserDefaults.standard.set(toolOrder, forKey: ToolOrder.defaultsKey)
+        }
+    }
+
+    @Published var hiddenMeasuringToolIds: [String] = [] {
+        didSet {
+            UserDefaults.standard.set(hiddenMeasuringToolIds, forKey: ToolOrder.hiddenDefaultsKey)
+        }
+    }
+
     @Published var hiddenCategoryIds: [String] = [] {
         didSet {
             UserDefaults.standard.set(hiddenCategoryIds, forKey: "home_hidden_categories")
@@ -167,6 +181,77 @@ final class AppSettings: ObservableObject {
         triggerFeedback()
     }
 
+    // MARK: - Measuring Tool Order
+
+    private var measuringToolCatalog: [String] {
+        MeasuringTool.allCases.map(\.rawValue)
+    }
+
+    /// Every tool in the saved order, including hidden ones. New tools are appended.
+    var allMeasuringToolsInOrder: [MeasuringTool] {
+        ToolOrder.merged(saved: toolOrder, catalog: measuringToolCatalog).compactMap(MeasuringTool.init(rawValue:))
+    }
+
+    /// Tools shown on the grid.
+    var orderedMeasuringTools: [MeasuringTool] {
+        let hidden = Set(ToolOrder.mergedHidden(saved: hiddenMeasuringToolIds, catalog: measuringToolCatalog))
+        return allMeasuringToolsInOrder.filter { !hidden.contains($0.id) }
+    }
+
+    /// Tools hidden from the grid, in the saved order.
+    var hiddenMeasuringTools: [MeasuringTool] {
+        let hidden = Set(ToolOrder.mergedHidden(saved: hiddenMeasuringToolIds, catalog: measuringToolCatalog))
+        return allMeasuringToolsInOrder.filter { hidden.contains($0.id) }
+    }
+
+    var canHideMoreMeasuringTools: Bool {
+        orderedMeasuringTools.count > 1
+    }
+
+    func moveMeasuringTool(_ draggedId: String, to targetId: String) {
+        let current = allMeasuringToolsInOrder.map(\.rawValue)
+        guard let updated = ToolOrder.moving(current, dragged: draggedId, to: targetId) else { return }
+        toolOrder = updated
+        triggerDragFeedback()
+    }
+
+    func moveMeasuringToolEarlier(_ id: String) {
+        let current = allMeasuringToolsInOrder.map(\.rawValue)
+        guard let updated = ToolOrder.movingEarlier(current, id: id) else { return }
+        toolOrder = updated
+        triggerDragFeedback()
+    }
+
+    func moveMeasuringToolLater(_ id: String) {
+        let current = allMeasuringToolsInOrder.map(\.rawValue)
+        guard let updated = ToolOrder.movingLater(current, id: id) else { return }
+        toolOrder = updated
+        triggerDragFeedback()
+    }
+
+    func toggleMeasuringToolHidden(_ id: String) {
+        if hiddenMeasuringToolIds.contains(id) {
+            hiddenMeasuringToolIds.removeAll { $0 == id }
+            triggerFeedback()
+        } else {
+            guard canHideMoreMeasuringTools else { return }
+            hiddenMeasuringToolIds.append(id)
+            triggerFeedback()
+        }
+    }
+
+    func showAllMeasuringTools() {
+        guard !hiddenMeasuringToolIds.isEmpty else { return }
+        hiddenMeasuringToolIds.removeAll()
+        triggerFeedback()
+    }
+
+    func resetMeasuringToolOrder() {
+        toolOrder = MeasuringTool.allCases.map(\.rawValue)
+        hiddenMeasuringToolIds.removeAll()
+        triggerFeedback()
+    }
+
     private var historyFileURL: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         return dir.appendingPathComponent("conversion_history.json")
@@ -211,6 +296,12 @@ final class AppSettings: ObservableObject {
         }
         if let savedHidden = UserDefaults.standard.stringArray(forKey: "home_hidden_categories") {
             hiddenCategoryIds = savedHidden
+        }
+        if let savedToolOrder = UserDefaults.standard.stringArray(forKey: ToolOrder.defaultsKey) {
+            toolOrder = savedToolOrder
+        }
+        if let savedHiddenTools = UserDefaults.standard.stringArray(forKey: ToolOrder.hiddenDefaultsKey) {
+            hiddenMeasuringToolIds = savedHiddenTools
         }
 
         history = loadHistory()

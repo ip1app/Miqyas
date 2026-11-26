@@ -176,6 +176,94 @@ struct L10n {
     var realWorldTitle: String { lang == .arabic ? "مقارنات بصرية واقعية 🌍" : "Real-World Visual Insights 🌍" }
     var realWorldSubtitle: String { lang == .arabic ? "تخيل القيمة بمقاييس واقعية ملموسة" : "Visualize this value with real-world objects" }
     var realWorldEquivalent: String { lang == .arabic ? "يعادل تقريباً:" : "Approximately equals:" }
+
+    // Measuring Tools
+    var tabTools: String { lang == .arabic ? "أدوات القياس" : "Measuring Tools" }
+    var toolsHeadline: String { lang == .arabic ? "أدوات القياس" : "Measuring Tools" }
+    var toolsSubtitle: String { lang == .arabic ? "ميزان استواء، بوصلة القبلة، ومقياس صوت" : "Level, Qibla compass, and sound meter" }
+
+    var toolLevelTitle: String { lang == .arabic ? "ميزان استواء" : "Level" }
+    var toolLevelSubtitle: String { lang == .arabic ? "فقاعة وزاوية" : "Bubble and angle" }
+    var toolLevelBadge: String { lang == .arabic ? "فقاعة" : "Bubble" }
+    var toolCompassTitle: String { lang == .arabic ? "البوصلة والقبلة" : "Compass & Qibla" }
+    var toolCompassSubtitle: String { lang == .arabic ? "اتجاه القبلة" : "Qibla direction" }
+    var toolCompassBadge: String { lang == .arabic ? "اتجاه" : "Heading" }
+    var toolSoundTitle: String { lang == .arabic ? "مقياس الصوت" : "Sound Meter" }
+    var toolSoundSubtitle: String { lang == .arabic ? "مستوى تقريبي" : "Approximate level" }
+    var toolSoundBadge: String { lang == .arabic ? "تقريبي" : "Approx" }
+
+    var openSettings: String { lang == .arabic ? "فتح الإعدادات" : "Open Settings" }
+    var tryAgain: String { lang == .arabic ? "إعادة المحاولة" : "Try Again" }
+
+    var levelSurface: String { lang == .arabic ? "سطح" : "Surface" }
+    var levelEdge: String { lang == .arabic ? "حافة" : "Edge" }
+    var levelCalibrate: String { lang == .arabic ? "تصفير" : "Zero" }
+    var levelResetCalibration: String { lang == .arabic ? "إلغاء التصفير" : "Clear Zero" }
+    var levelCalibratedBadge: String { lang == .arabic ? "تم التصفير" : "Zeroed" }
+    var levelIsLevel: String { lang == .arabic ? "مستوٍ" : "Level" }
+    var levelFromHorizontal: String { lang == .arabic ? "عن الأفقي" : "From horizontal" }
+    var levelMotionUnavailable: String { lang == .arabic ? "مستشعر الحركة غير متوفر على هذا الجهاز، لذلك لا يمكن استخدام ميزان الاستواء." : "Motion sensors are not available on this device, so the level cannot be used." }
+    var levelHintSurface: String { lang == .arabic ? "ضع الهاتف مسطحاً على السطح. عندما تستقر الفقاعة في الوسط يكون السطح مستوياً." : "Lay the phone flat on the surface. The surface is level when the bubble rests in the center." }
+    var levelHintEdge: String { lang == .arabic ? "ضع الهاتف على حافته الطويلة. الزاوية صفر تعني أن الحافة أفقية." : "Rest the phone on its long edge. Zero degrees means that edge is horizontal." }
+
+    var compassTrueNorth: String { lang == .arabic ? "الشمال الحقيقي" : "True north" }
+    var compassMagneticNorth: String { lang == .arabic ? "الشمال المغناطيسي" : "Magnetic north" }
+    var qiblaBearingLabel: String { lang == .arabic ? "اتجاه القبلة" : "Qibla bearing" }
+    var distanceToMakkah: String { lang == .arabic ? "المسافة إلى مكة" : "Distance to Makkah" }
+    var kilometersUnit: String { lang == .arabic ? "كم" : "km" }
+    var compassCalibrateHint: String { lang == .arabic ? "حرّك الهاتف على شكل رقم 8 لمعايرة البوصلة." : "Move the phone in a figure-8 to calibrate the compass." }
+    var compassHardwareUnavailable: String { lang == .arabic ? "مستشعر البوصلة غير متوفر على هذا الجهاز. اتجاه القبلة والمسافة يعتمدان على موقعك فقط." : "The compass sensor is not available on this device. Qibla direction and distance still use your location." }
+    var locationPromptMessage: String { lang == .arabic ? "سيطلب مقياس إذن الموقع أثناء استخدام التطبيق لإظهار اتجاه القبلة والمسافة إلى مكة." : "Miqyas will ask for location access while the app is open, so it can show the Qibla direction and the distance to Makkah." }
+    var locationDeniedMessage: String { lang == .arabic ? "يلزم السماح بالموقع أثناء استخدام التطبيق لإظهار الاتجاه والقبلة. يمكنك تفعيل ذلك من الإعدادات." : "Allow location access while using the app to show your heading and the Qibla. You can turn it on in Settings." }
+    var locatingMessage: String { lang == .arabic ? "جارٍ تحديد موقعك لإظهار القبلة والمسافة." : "Finding your location to show the Qibla and distance." }
+    var atKaabaMessage: String { lang == .arabic ? "أنت عند الكعبة" : "You are at the Kaaba" }
+    var facingQibla: String { lang == .arabic ? "أنت باتجاه القبلة" : "You are facing the Qibla" }
+
+    func turnRight(_ degrees: String) -> String {
+        lang == .arabic ? "أدر يميناً \(degrees)°" : "Turn right \(degrees)°"
+    }
+
+    func turnLeft(_ degrees: String) -> String {
+        lang == .arabic ? "أدر يساراً \(degrees)°" : "Turn left \(degrees)°"
+    }
+
+    var cardinalNorth: String { lang == .arabic ? "شمال" : "North" }
+    var cardinalNorthEast: String { lang == .arabic ? "شمال شرقي" : "Northeast" }
+    var cardinalEast: String { lang == .arabic ? "شرق" : "East" }
+    var cardinalSouthEast: String { lang == .arabic ? "جنوب شرقي" : "Southeast" }
+    var cardinalSouth: String { lang == .arabic ? "جنوب" : "South" }
+    var cardinalSouthWest: String { lang == .arabic ? "جنوب غربي" : "Southwest" }
+    var cardinalWest: String { lang == .arabic ? "غرب" : "West" }
+    var cardinalNorthWest: String { lang == .arabic ? "شمال غربي" : "Northwest" }
+    var cardinalNorthShort: String { lang == .arabic ? "ش" : "N" }
+    var cardinalEastShort: String { lang == .arabic ? "ق" : "E" }
+    var cardinalSouthShort: String { lang == .arabic ? "ج" : "S" }
+    var cardinalWestShort: String { lang == .arabic ? "غ" : "W" }
+
+    func cardinalName(_ direction: CardinalDirection) -> String {
+        switch direction {
+        case .north: return cardinalNorth
+        case .northEast: return cardinalNorthEast
+        case .east: return cardinalEast
+        case .southEast: return cardinalSouthEast
+        case .south: return cardinalSouth
+        case .southWest: return cardinalSouthWest
+        case .west: return cardinalWest
+        case .northWest: return cardinalNorthWest
+        }
+    }
+
+    var soundApproximateLabel: String { lang == .arabic ? "تقريبي وليس قياساً معايرًا" : "Approximate, not a calibrated measurement" }
+    var soundDecibelUnit: String { lang == .arabic ? "ديسيبل" : "dB" }
+    var soundMin: String { lang == .arabic ? "الأدنى" : "Min" }
+    var soundAvg: String { lang == .arabic ? "المتوسط" : "Avg" }
+    var soundMax: String { lang == .arabic ? "الأعلى" : "Max" }
+    var soundReset: String { lang == .arabic ? "إعادة ضبط" : "Reset" }
+    var soundPromptMessage: String { lang == .arabic ? "سيطلب مقياس استخدام الميكروفون لإظهار مستوى صوت تقريبي. القياس ليس معايرًا." : "Miqyas will ask to use the microphone to show an approximate sound level. The reading is not calibrated." }
+    var soundMicDenied: String { lang == .arabic ? "يلزم السماح بالميكروفون لقياس مستوى الصوت. يمكنك تفعيل ذلك من الإعدادات." : "Allow microphone access to measure the sound level. You can turn it on in Settings." }
+    var soundMicUnavailable: String { lang == .arabic ? "الميكروفون غير متوفر على هذا الجهاز، لذلك لا يمكن قياس الصوت." : "The microphone is not available on this device, so sound cannot be measured." }
+    var soundFailed: String { lang == .arabic ? "تعذر بدء قياس الصوت. حاول مرة أخرى." : "The sound meter could not start. Try again." }
+    var soundMeasuring: String { lang == .arabic ? "جارٍ القياس" : "Measuring" }
 }
 
 // MARK: - Shared Formatting & Sharing Helpers

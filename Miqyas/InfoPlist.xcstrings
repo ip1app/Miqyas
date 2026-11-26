@@ -34,6 +34,40 @@
           }
         }
       }
+    },
+    "NSLocationWhenInUseUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم مقياس موقعك أثناء فتح التطبيق لإظهار اتجاه القبلة والمسافة إلى مكة المكرمة."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miqyas uses your location while the app is open to show the Qibla direction and the distance to Makkah."
+          }
+        }
+      }
+    },
+    "NSMicrophoneUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "يستخدم مقياس الميكروفون لإظهار مستوى صوت تقريبي أثناء فتح مقياس الصوت."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Miqyas uses the microphone to show an approximate sound level while the sound meter is open."
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

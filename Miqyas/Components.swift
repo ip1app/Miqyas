@@ -294,142 +294,153 @@ struct CategoryCardContent: View {
     let category: UnitCategory
     @EnvironmentObject var settings: AppSettings
 
-    var isFav: Bool {
-        settings.isFavorite(category.id)
+    var body: some View {
+        FeatureGridCard(
+            title: category.title(for: settings.appLanguage),
+            subtitle: category.subtitle(for: settings.appLanguage),
+            icon: category.icon,
+            gradient: category.gradientColors,
+            badge: "\(category.units.count) \(settings.l10n.unitsSuffix)",
+            arrowSystemName: settings.appLanguage.arrowIcon,
+            showsFavoriteStar: settings.isFavorite(category.id)
+        )
     }
+}
 
-    var primaryColor: Color {
-        category.gradientColors.first ?? .blue
-    }
+/// Home-grid card used by unit categories and measuring tools.
+struct FeatureGridCard: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let gradient: [Color]
+    let badge: String
+    let arrowSystemName: String
+    var showsFavoriteStar: Bool = false
+
+    private var primaryColor: Color { gradient.first ?? .blue }
 
     var body: some View {
-        Group {
-            VStack(alignment: .leading, spacing: 14) {
-                // Top Row: 3D Glowing Icon & Star Action
-                HStack(alignment: .top) {
-                    ZStack {
-                        // Ambient colored glow under icon
-                        RoundedRectangle(cornerRadius: 18)
-                            .fill(primaryColor.opacity(0.35))
-                            .frame(width: 54, height: 54)
-                            .blur(radius: 8)
-                            .offset(y: 4)
-
-                        RoundedRectangle(cornerRadius: 18)
-                            .fill(
-                                LinearGradient(
-                                    colors: category.gradientColors,
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                            )
-                            .frame(width: 52, height: 52)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 18)
-                                    .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                            )
-
-                        Image(systemName: category.icon)
-                            .font(.system(size: 24, weight: .bold))
-                            .foregroundColor(.white)
-                            .shadow(color: Color.black.opacity(0.2), radius: 2, y: 1)
-                    }
-
-                    Spacer()
-
-                    if isFav {
-                        ZStack {
-                            Circle()
-                                .fill(Color.yellow.opacity(0.2))
-                                .frame(width: 30, height: 30)
-                            Image(systemName: "star.fill")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.yellow)
-                        }
-                        .transition(.scale.combined(with: .opacity))
-                    }
-                }
-
-                // Titles with modern typography
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(category.title(for: settings.appLanguage))
-                        .font(.system(size: 17, weight: .bold, design: .rounded))
-                        .foregroundColor(.primary)
-                        .lineLimit(1)
-
-                    Text(category.subtitle(for: settings.appLanguage))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .lineLimit(1)
-                }
-
-                // Bottom Row: Neon Capsule Badge & Glass Indicator
-                HStack {
-                    HStack(spacing: 4) {
-                        Circle()
-                            .fill(primaryColor)
-                            .frame(width: 5, height: 5)
-                        Text("\(category.units.count) \(settings.l10n.unitsSuffix)")
-                            .font(.system(size: 11, weight: .bold, design: .rounded))
-                    }
-                    .foregroundColor(primaryColor)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 4)
-                    .background(primaryColor.opacity(0.12))
-                    .clipShape(Capsule())
-                    .overlay(
-                        Capsule()
-                            .stroke(primaryColor.opacity(0.25), lineWidth: 0.8)
-                    )
-
-                    Spacer()
-
-                    ZStack {
-                        Circle()
-                            .fill(Color.primary.opacity(0.05))
-                            .frame(width: 24, height: 24)
-                        Image(systemName: settings.appLanguage.arrowIcon)
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            .padding(16)
-            .background(
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 24)
-                        .fill(.ultraThinMaterial)
+                    RoundedRectangle(cornerRadius: 18)
+                        .fill(primaryColor.opacity(0.35))
+                        .frame(width: 54, height: 54)
+                        .blur(radius: 8)
+                        .offset(y: 4)
 
-                    // Subtle dynamic color sheen in the corner
-                    RoundedRectangle(cornerRadius: 24)
+                    RoundedRectangle(cornerRadius: 18)
                         .fill(
                             LinearGradient(
-                                colors: [primaryColor.opacity(0.08), Color.clear],
+                                colors: gradient,
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
+                        .frame(width: 52, height: 52)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 18)
+                                .stroke(Color.white.opacity(0.4), lineWidth: 1)
+                        )
+
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundColor(.white)
+                        .shadow(color: Color.black.opacity(0.2), radius: 2, y: 1)
                 }
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 24))
-            .shadow(color: Color.black.opacity(0.08), radius: 18, x: 0, y: 8)
-            .shadow(color: primaryColor.opacity(0.12), radius: 12, x: 0, y: 4)
-            .overlay(
+
+                Spacer()
+
+                if showsFavoriteStar {
+                    ZStack {
+                        Circle()
+                            .fill(Color.yellow.opacity(0.2))
+                            .frame(width: 30, height: 30)
+                        Image(systemName: "star.fill")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.yellow)
+                    }
+                    .transition(.scale.combined(with: .opacity))
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary)
+                    .lineLimit(1)
+
+                Text(subtitle)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            }
+
+            HStack {
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(primaryColor)
+                        .frame(width: 5, height: 5)
+                    Text(badge)
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .lineLimit(1)
+                }
+                .foregroundColor(primaryColor)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 4)
+                .background(primaryColor.opacity(0.12))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(primaryColor.opacity(0.25), lineWidth: 0.8)
+                )
+
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .fill(Color.primary.opacity(0.05))
+                        .frame(width: 24, height: 24)
+                    Image(systemName: arrowSystemName)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.secondary)
+                }
+            }
+        }
+        .padding(16)
+        .background(
+            ZStack {
                 RoundedRectangle(cornerRadius: 24)
-                    .stroke(
+                    .fill(.ultraThinMaterial)
+
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(
                         LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.65),
-                                primaryColor.opacity(0.2),
-                                Color.clear
-                            ],
+                            colors: [primaryColor.opacity(0.08), Color.clear],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 1.2
+                        )
                     )
-            )
-        }
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 24))
+        .shadow(color: Color.black.opacity(0.08), radius: 18, x: 0, y: 8)
+        .shadow(color: primaryColor.opacity(0.12), radius: 12, x: 0, y: 4)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(0.65),
+                            primaryColor.opacity(0.2),
+                            Color.clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.2
+                )
+        )
     }
 }
 
@@ -573,13 +584,15 @@ struct ScaleCardButtonStyle: ButtonStyle {
 
 enum AppTab: Int, CaseIterable {
     case home = 0
-    case favorites = 1
-    case history = 2
-    case settings = 3
+    case tools = 1
+    case favorites = 2
+    case history = 3
+    case settings = 4
 
     func title(using l10n: L10n) -> String {
         switch self {
         case .home: return l10n.tabHome
+        case .tools: return l10n.tabTools
         case .favorites: return l10n.tabFavorites
         case .history: return l10n.tabHistory
         case .settings: return l10n.tabSettings
@@ -589,6 +602,7 @@ enum AppTab: Int, CaseIterable {
     var icon: String {
         switch self {
         case .home: return "house.fill"
+        case .tools: return "wrench.and.screwdriver.fill"
         case .favorites: return "star.fill"
         case .history: return "clock.fill"
         case .settings: return "gearshape.fill"
@@ -656,6 +670,9 @@ struct DistinctiveFloatingTabBar: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(tab.title(using: settings.l10n))
+                .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .accessibilityRemoveTraits(isSelected ? [] : .isSelected)
             }
         }
         .padding(.horizontal, 8)

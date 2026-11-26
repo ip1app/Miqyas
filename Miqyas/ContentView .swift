@@ -9,11 +9,14 @@ import Combine
 final class TabNavigationRouter: ObservableObject {
     @Published private(set) var homePopToken: Int = 0
     @Published private(set) var favoritesPopToken: Int = 0
+    @Published private(set) var toolsPopToken: Int = 0
 
     func popToRoot(for tab: AppTab) {
         switch tab {
         case .home:
             homePopToken += 1
+        case .tools:
+            toolsPopToken += 1
         case .favorites:
             favoritesPopToken += 1
         case .history, .settings:
@@ -35,6 +38,8 @@ struct ContentView: View {
                 switch selectedTab {
                 case .home:
                     HomeView()
+                case .tools:
+                    MeasuringToolsView()
                 case .favorites:
                     FavoritesView()
                 case .history:
