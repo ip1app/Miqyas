@@ -26,6 +26,14 @@ final class AppSettings: ObservableObject {
         }
     }
 
+    /// Saved measuring-tool card order. Empty means the catalog order.
+    /// New tools missing from a saved order are appended when the grid is built.
+    @Published var toolOrder: [String] = [] {
+        didSet {
+            UserDefaults.standard.set(toolOrder, forKey: ToolOrder.defaultsKey)
+        }
+    }
+
     @Published var hiddenCategoryIds: [String] = [] {
         didSet {
             UserDefaults.standard.set(hiddenCategoryIds, forKey: "home_hidden_categories")
@@ -167,6 +175,39 @@ final class AppSettings: ObservableObject {
         triggerFeedback()
     }
 
+    // MARK: - Measuring Tool Order
+
+    var orderedMeasuringTools: [MeasuringTool] {
+        let catalog = MeasuringTool.allCases.map(\.rawValue)
+        return ToolOrder.merged(saved: toolOrder, catalog: catalog).compactMap(MeasuringTool.init(rawValue:))
+    }
+
+    func moveMeasuringTool(_ draggedId: String, to targetId: String) {
+        let current = orderedMeasuringTools.map(\.rawValue)
+        guard let updated = ToolOrder.moving(current, dragged: draggedId, to: targetId) else { return }
+        toolOrder = updated
+        triggerDragFeedback()
+    }
+
+    func moveMeasuringToolEarlier(_ id: String) {
+        let current = orderedMeasuringTools.map(\.rawValue)
+        guard let updated = ToolOrder.movingEarlier(current, id: id) else { return }
+        toolOrder = updated
+        triggerDragFeedback()
+    }
+
+    func moveMeasuringToolLater(_ id: String) {
+        let current = orderedMeasuringTools.map(\.rawValue)
+        guard let updated = ToolOrder.movingLater(current, id: id) else { return }
+        toolOrder = updated
+        triggerDragFeedback()
+    }
+
+    func resetMeasuringToolOrder() {
+        toolOrder = MeasuringTool.allCases.map(\.rawValue)
+        triggerFeedback()
+    }
+
     private var historyFileURL: URL {
         let dir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
         return dir.appendingPathComponent("conversion_history.json")
@@ -211,6 +252,9 @@ final class AppSettings: ObservableObject {
         }
         if let savedHidden = UserDefaults.standard.stringArray(forKey: "home_hidden_categories") {
             hiddenCategoryIds = savedHidden
+        }
+        if let savedToolOrder = UserDefaults.standard.stringArray(forKey: ToolOrder.defaultsKey) {
+            toolOrder = savedToolOrder
         }
 
         history = loadHistory()

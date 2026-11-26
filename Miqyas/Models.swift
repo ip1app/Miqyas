@@ -183,11 +183,15 @@ struct L10n {
     var toolsSubtitle: String { lang == .arabic ? "ميزان استواء، بوصلة القبلة، ومقياس صوت" : "Level, Qibla compass, and sound meter" }
 
     var toolLevelTitle: String { lang == .arabic ? "ميزان استواء" : "Level" }
-    var toolLevelSubtitle: String { lang == .arabic ? "فقاعة للسطح وزاوية للحافة" : "Bubble on a surface, angle on an edge" }
+    var toolLevelSubtitle: String { lang == .arabic ? "فقاعة وزاوية" : "Bubble and angle" }
+    var toolLevelBadge: String { lang == .arabic ? "فقاعة" : "Bubble" }
     var toolCompassTitle: String { lang == .arabic ? "البوصلة والقبلة" : "Compass & Qibla" }
-    var toolCompassSubtitle: String { lang == .arabic ? "الاتجاه والمسافة إلى مكة" : "Heading and distance to Makkah" }
+    var toolCompassSubtitle: String { lang == .arabic ? "اتجاه القبلة" : "Qibla direction" }
+    var toolCompassBadge: String { lang == .arabic ? "اتجاه" : "Heading" }
     var toolSoundTitle: String { lang == .arabic ? "مقياس الصوت" : "Sound Meter" }
-    var toolSoundSubtitle: String { lang == .arabic ? "مستوى صوت تقريبي ومباشر" : "Live approximate sound level" }
+    var toolSoundSubtitle: String { lang == .arabic ? "مستوى تقريبي" : "Approximate level" }
+    var toolSoundBadge: String { lang == .arabic ? "تقريبي" : "Approx" }
+    var toolsReorderHint: String { lang == .arabic ? "اسحب البطاقة لتغيير ترتيبها" : "Drag a card to reorder it" }
 
     var openSettings: String { lang == .arabic ? "فتح الإعدادات" : "Open Settings" }
     var tryAgain: String { lang == .arabic ? "إعادة المحاولة" : "Try Again" }

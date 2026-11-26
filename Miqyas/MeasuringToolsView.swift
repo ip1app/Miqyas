@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 
 // MARK: - Tools hub
 
@@ -25,6 +26,14 @@ enum MeasuringTool: String, Hashable, CaseIterable, Identifiable {
         }
     }
 
+    func badge(using l10n: L10n) -> String {
+        switch self {
+        case .level: return l10n.toolLevelBadge
+        case .compass: return l10n.toolCompassBadge
+        case .sound: return l10n.toolSoundBadge
+        }
+    }
+
     var icon: String {
         switch self {
         case .level: return "circle.grid.cross.fill"
@@ -46,19 +55,28 @@ struct MeasuringToolsView: View {
     @EnvironmentObject var settings: AppSettings
     @EnvironmentObject var router: TabNavigationRouter
     @State private var path = NavigationPath()
+    @State private var isEditingLayout = false
+    @State private var draggingToolID: String?
+    @State private var lastDropTargetId: String?
+    @State private var showingResetOrder = false
 
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
+                VStack(spacing: 20) {
                     header
-                        .padding(.top, 8)
+                        .id("toolsTop")
 
-                    ForEach(MeasuringTool.allCases) { tool in
-                        NavigationLink(value: tool) {
-                            MeasuringToolCard(tool: tool)
-                        }
-                        .buttonStyle(ScaleCardButtonStyle())
+                    if isEditingLayout {
+                        editModeBanner
+                    } else {
+                        editButtonRow
+                    }
+
+                    toolGrid
+
+                    if isEditingLayout {
+                        resetOrderButton
                     }
 
                     Color.clear.frame(height: 110)
@@ -78,21 +96,22 @@ struct MeasuringToolsView: View {
             if !path.isEmpty {
                 path = NavigationPath()
             }
+            exitEditMode()
         }
     }
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 12) {
+        HStack(alignment: .center) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack(spacing: 6) {
-                    Image(systemName: "scope")
+                    Image(systemName: "sparkles")
                         .font(.caption.bold())
-                        .foregroundColor(.cyan)
+                        .foregroundColor(.yellow)
                     Text(settings.l10n.smartConverter)
                         .font(.system(size: 13, weight: .heavy, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
-                                colors: accentGradientColors,
+                                colors: [Color.blue, Color.cyan],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
@@ -102,7 +121,7 @@ struct MeasuringToolsView: View {
                 .padding(.vertical, 4)
                 .background(.ultraThinMaterial)
                 .clipShape(Capsule())
-                .overlay(Capsule().stroke(Color.cyan.opacity(0.3), lineWidth: 1))
+                .overlay(Capsule().stroke(Color.blue.opacity(0.3), lineWidth: 1))
 
                 Text(settings.l10n.toolsHeadline)
                     .font(.system(size: 28, weight: .heavy, design: .rounded))
@@ -113,18 +132,19 @@ struct MeasuringToolsView: View {
                             endPoint: .bottomTrailing
                         )
                     )
+                    .shadow(color: Color.blue.opacity(0.12), radius: 6, y: 3)
 
                 Text(settings.l10n.toolsSubtitle)
                     .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2)
             }
 
-            Spacer(minLength: 8)
+            Spacer()
 
             ZStack {
                 Circle()
-                    .fill(Color.cyan.opacity(0.35))
+                    .fill(Color.blue.opacity(0.35))
                     .frame(width: 56, height: 56)
                     .blur(radius: 10)
                 Circle()
@@ -138,9 +158,189 @@ struct MeasuringToolsView: View {
                     .frame(width: 52, height: 52)
                     .overlay(Circle().stroke(Color.white.opacity(0.6), lineWidth: 1.5))
                 Image(systemName: "wrench.and.screwdriver.fill")
-                    .font(.title3.bold())
+                    .font(.title2.bold())
                     .foregroundColor(.white)
             }
+        }
+        .padding(.top, 8)
+    }
+
+    private var editButtonRow: some View {
+        HStack {
+            Spacer()
+            Button {
+                enterEditMode()
+            } label: {
+                Image(systemName: "slider.horizontal.3")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundColor(.blue)
+                    .frame(width: 34, height: 34)
+                    .background(.ultraThinMaterial)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white.opacity(0.3), lineWidth: 1))
+                    .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(settings.l10n.editCards)
+        }
+    }
+
+    private var editModeBanner: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.12))
+                    .frame(width: 38, height: 38)
+                Image(systemName: "hand.draw.fill")
+                    .font(.system(size: 15, weight: .bold))
+                    .foregroundColor(.blue)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(settings.l10n.editModeTitle)
+                    .font(.system(size: 15, weight: .heavy, design: .rounded))
+                Text(settings.l10n.toolsReorderHint)
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+                    .lineLimit(2)
+            }
+
+            Spacer(minLength: 8)
+
+            Button {
+                exitEditMode()
+            } label: {
+                Text(settings.l10n.done)
+                    .font(.system(size: 14, weight: .heavy, design: .rounded))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 9)
+                    .background(
+                        LinearGradient(
+                            colors: accentGradientColors,
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .clipShape(Capsule())
+                    .shadow(color: Color.blue.opacity(0.3), radius: 6, y: 3)
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(14)
+        .background(RoundedRectangle(cornerRadius: 20).fill(.ultraThinMaterial))
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.blue.opacity(0.15), lineWidth: 1))
+    }
+
+    private var toolGrid: some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: 14),
+                GridItem(.flexible(), spacing: 14)
+            ],
+            spacing: 14
+        ) {
+            ForEach(settings.orderedMeasuringTools) { tool in
+                if isEditingLayout {
+                    ToolGridCard(
+                        tool: tool,
+                        isEditing: true,
+                        isDragging: draggingToolID == tool.id,
+                        onOpen: { open(tool) },
+                        onLongPress: { },
+                        onMoveEarlier: { settings.moveMeasuringToolEarlier(tool.id) },
+                        onMoveLater: { settings.moveMeasuringToolLater(tool.id) }
+                    )
+                    .onDrag {
+                        draggingToolID = tool.id
+                        lastDropTargetId = nil
+                        settings.triggerFeedback(impact: .medium)
+                        let draggedId = tool.id
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+                            if draggingToolID == draggedId {
+                                draggingToolID = nil
+                                lastDropTargetId = nil
+                            }
+                        }
+                        return NSItemProvider(object: tool.id as NSString)
+                    }
+                    .onDrop(
+                        of: [.text],
+                        delegate: ToolDropDelegate(
+                            targetID: tool.id,
+                            isEnabled: true,
+                            draggingID: $draggingToolID,
+                            lastTargetId: $lastDropTargetId,
+                            onMove: { dragged, target in
+                                settings.moveMeasuringTool(dragged, to: target)
+                            }
+                        )
+                    )
+                } else {
+                    ToolGridCard(
+                        tool: tool,
+                        isEditing: false,
+                        isDragging: false,
+                        onOpen: { open(tool) },
+                        onLongPress: { enterEditMode() },
+                        onMoveEarlier: { },
+                        onMoveLater: { }
+                    )
+                }
+            }
+        }
+    }
+
+    private var resetOrderButton: some View {
+        Button(role: .destructive) {
+            showingResetOrder = true
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "arrow.counterclockwise")
+                Text(settings.l10n.resetLayoutBtn)
+            }
+            .font(.system(size: 13, weight: .bold, design: .rounded))
+            .foregroundColor(.red)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(Color.red.opacity(0.1))
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+        .confirmationDialog(
+            settings.l10n.resetLayoutBtn,
+            isPresented: $showingResetOrder,
+            titleVisibility: .visible
+        ) {
+            Button(settings.l10n.resetLayoutBtn, role: .destructive) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    settings.resetMeasuringToolOrder()
+                }
+            }
+            Button(settings.l10n.cancel, role: .cancel) { }
+        }
+    }
+
+    private func open(_ tool: MeasuringTool) {
+        guard !isEditingLayout else { return }
+        path.append(tool)
+    }
+
+    private func enterEditMode() {
+        guard !isEditingLayout else { return }
+        settings.triggerFeedback(impact: .medium)
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            isEditingLayout = true
+        }
+    }
+
+    private func exitEditMode() {
+        draggingToolID = nil
+        lastDropTargetId = nil
+        guard isEditingLayout else { return }
+        settings.triggerFeedback()
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            isEditingLayout = false
         }
     }
 
@@ -157,59 +357,102 @@ struct MeasuringToolsView: View {
     }
 }
 
-struct MeasuringToolCard: View {
+private struct ToolGridCard: View {
     let tool: MeasuringTool
-    @EnvironmentObject var settings: AppSettings
+    let isEditing: Bool
+    let isDragging: Bool
+    let onOpen: () -> Void
+    let onLongPress: () -> Void
+    let onMoveEarlier: () -> Void
+    let onMoveLater: () -> Void
 
-    private var primary: Color { tool.gradient.first ?? .blue }
+    @EnvironmentObject var settings: AppSettings
+    @State private var suppressTap = false
+    @State private var wiggle = false
 
     var body: some View {
-        HStack(spacing: 14) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(primary.opacity(0.35))
-                    .frame(width: 54, height: 54)
-                    .blur(radius: 8)
-                    .offset(y: 4)
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(
-                        LinearGradient(
-                            colors: tool.gradient,
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 52, height: 52)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.white.opacity(0.4), lineWidth: 1)
-                    )
-                Image(systemName: tool.icon)
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundColor(.white)
+        Button {
+            if suppressTap {
+                suppressTap = false
+                return
             }
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(tool.title(using: settings.l10n))
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary)
-                Text(tool.subtitle(using: settings.l10n))
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 8)
-
-            Image(systemName: settings.appLanguage.arrowIcon)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.secondary)
-                .frame(width: 28, height: 28)
-                .background(Circle().fill(Color.primary.opacity(0.05)))
+            guard !isEditing else { return }
+            onOpen()
+        } label: {
+            FeatureGridCard(
+                title: tool.title(using: settings.l10n),
+                subtitle: tool.subtitle(using: settings.l10n),
+                icon: tool.icon,
+                gradient: tool.gradient,
+                badge: tool.badge(using: settings.l10n),
+                arrowSystemName: settings.appLanguage.arrowIcon
+            )
         }
-        .padding(16)
-        .toolGlass()
+        .buttonStyle(ScaleCardButtonStyle())
+        .simultaneousGesture(
+            LongPressGesture(minimumDuration: 0.45)
+                .onEnded { _ in
+                    guard !isEditing else { return }
+                    suppressTap = true
+                    onLongPress()
+                }
+        )
+        .opacity(isDragging ? 0.4 : 1)
+        .scaleEffect(isEditing ? 0.97 : 1)
+        .rotationEffect(.degrees(isEditing ? (wiggle ? 0.8 : -0.8) : 0))
+        .onAppear { updateWiggle(for: isEditing) }
+        .onChange(of: isEditing) { _, editing in
+            updateWiggle(for: editing)
+        }
         .accessibilityElement(children: .combine)
+        .accessibilityHint(isEditing ? settings.l10n.toolsReorderHint : "")
+        .accessibilityActions {
+            if isEditing {
+                Button(settings.l10n.moveEarlier, action: onMoveEarlier)
+                Button(settings.l10n.moveLater, action: onMoveLater)
+            }
+        }
+    }
+
+    private func updateWiggle(for editing: Bool) {
+        suppressTap = false
+        if editing {
+            wiggle = false
+            withAnimation(.easeInOut(duration: 0.15).repeatForever(autoreverses: true)) {
+                wiggle = true
+            }
+        } else {
+            withAnimation(.easeInOut(duration: 0.12)) {
+                wiggle = false
+            }
+        }
+    }
+}
+
+private struct ToolDropDelegate: DropDelegate {
+    let targetID: String
+    let isEnabled: Bool
+    @Binding var draggingID: String?
+    @Binding var lastTargetId: String?
+    let onMove: (String, String) -> Void
+
+    func dropEntered(info: DropInfo) {
+        guard isEnabled, let draggingID, draggingID != targetID else { return }
+        guard lastTargetId != targetID else { return }
+        lastTargetId = targetID
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+            onMove(draggingID, targetID)
+        }
+    }
+
+    func dropUpdated(info: DropInfo) -> DropProposal? {
+        DropProposal(operation: .move)
+    }
+
+    func performDrop(info: DropInfo) -> Bool {
+        draggingID = nil
+        lastTargetId = nil
+        return true
     }
 }
 
