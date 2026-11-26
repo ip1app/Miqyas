@@ -201,6 +201,31 @@ struct SettingsView: View {
                                     .bold()
                             }
                             Divider()
+                            if let reviewURL = URL(string: "https://apps.apple.com/app/id6838107268?action=write-review") {
+                                Link(destination: reviewURL) {
+                                    HStack(spacing: 10) {
+                                        Image(systemName: "star.fill")
+                                            .font(.body)
+                                            .foregroundColor(.yellow)
+                                            .accessibilityHidden(true)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(settings.l10n.rateAppTitle)
+                                                .font(.body)
+                                                .foregroundColor(.primary)
+                                            Text(settings.l10n.rateAppSubtitle)
+                                                .font(.caption)
+                                                .foregroundColor(.secondary)
+                                        }
+                                        Spacer()
+                                        Image(systemName: "arrow.up.forward.app")
+                                            .font(.footnote)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            Divider()
                             if let privacyURL = URL(string: "https://www.ip1.app/privacy.html") {
                                 Link(destination: privacyURL) {
                                     HStack {
